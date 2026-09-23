@@ -51,32 +51,48 @@ const LEITOS_COMPLEMENTARES_SQL = `
 `;
 
 // Dicionário TP_UNID (confirmado contra a tabela oficial do CNES/DATASUS)
+// Dicionário TP_UNID — fonte: cnes2.datasus.gov.br/Mod_Ind_Unidade.asp (consulta oficial
+// do DATASUS, relatório nacional com totais reais). Substituiu uma versão anterior que
+// tinha alguns códigos errados (confirmados como incorretos contra essa fonte primária).
 const TP_UNID_LABELS = {
   "01": "Posto de saúde",
   "02": "Centro de saúde/unidade básica",
   "04": "Policlínica",
   "05": "Hospital geral",
   "07": "Hospital especializado",
-  "09": "Pronto socorro geral",
   "15": "Unidade mista",
-  "20": "Pronto socorro especializado",
-  "21": "Consultório médico",
-  "22": "Unidade de apoio diagnóstico",
+  "20": "Pronto socorro geral",
+  "21": "Pronto socorro especializado",
+  "22": "Consultório isolado",
   "32": "Unidade móvel fluvial",
   "36": "Clínica/centro de especialidade",
-  "39": "Unidade de saúde da família",
+  "39": "Unidade de apoio diagnose e terapia (SADT isolado)",
   "40": "Unidade móvel terrestre",
   "42": "Unidade móvel de nível pré-hospitalar (SAMU)",
   "43": "Farmácia",
   "50": "Unidade de vigilância em saúde",
-  "60": "Cooperativa/empresa de cessão de trabalhadores",
-  "61": "Centro de parto normal",
+  "60": "Cooperativa/empresa de cessão de trabalhadores na saúde",
+  "61": "Centro de parto normal (isolado)",
   "62": "Hospital/dia (isolado)",
-  "64": "Central de regulação de serviços de saúde",
-  "68": "Secretaria de saúde",
-  "70": "Centro de atenção hemoterápica/hematológica",
+  "67": "Laboratório Central de Saúde Pública (LACEN)",
+  "68": "Central de gestão em saúde",
+  "69": "Centro de atenção hemoterápica/hematológica",
+  "70": "Centro de Atenção Psicossocial (CAPS)",
+  "71": "Centro de apoio à saúde da família",
+  "72": "Unidade de atenção à saúde indígena",
+  "73": "Pronto atendimento",
+  "74": "Polo Academia da Saúde",
+  "75": "Telessaúde",
+  "76": "Central de regulação médica das urgências",
   "77": "Serviço de atenção domiciliar (home care)",
+  "78": "Unidade de atenção em regime residencial",
   "79": "Oficina ortopédica",
+  "80": "Laboratório de saúde pública",
+  "81": "Central de regulação do acesso",
+  "82": "Central de notificação, captação e distribuição de órgãos (estadual)",
+  "83": "Polo de prevenção de doenças e agravos e promoção da saúde",
+  "84": "Central de abastecimento",
+  "85": "Centro de imunização",
 };
 
 // --- Teste de conexão ---
