@@ -163,7 +163,16 @@ app.get("/api/estabelecimento/:cnes", async (req, res) => {
     );
 
     if (estruturaResult.rows.length === 0) {
-      return res.status(404).json({ mensagem: "Estabelecimento não encontrado na base estrutural do CNES." });
+      // Associado real, mas sem CNES/estrutura no DATASUS (ex: empresa prestadora
+      // de serviço - consultoria, locação, higienização - sem estabelecimento
+      // de saúde próprio). Não é erro: retorna só a identidade.
+      return res.json({
+        identidade,
+        estrutura: null,
+        indicadores: null,
+        comparativo: null,
+        sem_dados_cnes: true,
+      });
     }
     const estrutura = estruturaResult.rows[0];
 
