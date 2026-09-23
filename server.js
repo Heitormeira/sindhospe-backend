@@ -255,11 +255,15 @@ app.get("/api/municipios", async (req, res) => {
 app.get("/api/tipos", async (req, res) => {
   try {
     const r = await pool.query(
-      `SELECT DISTINCT "TP_UNID" AS codigo FROM estabelecimentos_pe ORDER BY "TP_UNID"`
+      `SELECT "TP_UNID" AS codigo, COUNT(*) AS total
+       FROM estabelecimentos_pe
+       GROUP BY "TP_UNID"
+       ORDER BY COUNT(*) DESC`
     );
     const tipos = r.rows.map((row) => ({
       codigo: row.codigo,
       label: TP_UNID_LABELS[row.codigo] || `Código ${row.codigo}`,
+      total: parseInt(row.total, 10),
     }));
     res.json(tipos);
   } catch (err) {
@@ -274,12 +278,22 @@ app.get("/api/evolucao/:cnes", async (req, res) => {
   try {
     const r = await pool.query(
       `SELECT
-          competencia,
+          h.competencia,
           ${LEITOS_SQL} AS leitos_totais,
-          "VINC_SUS" AS aceita_sus
-        FROM estabelecimentos_pe_historico
-        WHERE "CNES" = $1
-        ORDER BY competencia`,
+          ${LEITOS_COMPLEMENTARES_SQL} AS leitos_complementares,
+          COALESCE(lt.leitos_sus, 0) AS leitos_sus,
+          GREATEST(COALESCE(lt.leitos_exist, 0) - COALESCE(lt.leitos_sus, 0), 0) AS leitos_nao_sus,
+          h."VINC_SUS" AS aceita_sus
+        FROM estabelecimentos_pe_historico h
+        LEFT JOIN (
+          SELECT "CNES", competencia,
+            SUM(COALESCE(NULLIF("QT_SUS", '')::int, 0)) AS leitos_sus,
+            SUM(COALESCE(NULLIF("QT_EXIST", '')::int, 0)) AS leitos_exist
+          FROM leitos_pe_historico
+          GROUP BY "CNES", competencia
+        ) lt ON lt."CNES" = h."CNES" AND lt.competencia = h.competencia
+        WHERE h."CNES" = $1
+        ORDER BY h.competencia`,
       [cnes]
     );
     res.json(r.rows);
@@ -289,25 +303,36 @@ app.get("/api/evolucao/:cnes", async (req, res) => {
   }
 });
 
-// --- Mercado agregado: evolução do NÚMERO de estabelecimentos por município + tipo ---
-// Ex: "quantas clínicas (TP_UNID=36) havia em Caruaru (codufmun) em cada trimestre"
+// --- Mercado agregado: evolução do NÚMERO de estabelecimentos por tipo,
+// opcionalmente filtrado por município (sem município = agregado do estado inteiro) ---
 app.get("/api/mercado", async (req, res) => {
   const { municipio, tipo } = req.query;
-  if (!municipio || !tipo) {
-    return res.status(400).json({ mensagem: "Parâmetros 'municipio' e 'tipo' são obrigatórios." });
+  if (!tipo) {
+    return res.status(400).json({ mensagem: "Parâmetro 'tipo' é obrigatório." });
   }
   try {
+    const condMunicipio = municipio ? `AND h."CODUFMUN" = $2` : "";
+    const params = municipio ? [tipo, municipio] : [tipo];
+
     const r = await pool.query(
       `SELECT
-          competencia,
+          h.competencia,
           COUNT(*) AS total,
-          COUNT(*) FILTER (WHERE "VINC_SUS" = '1') AS total_sus,
-          AVG(${LEITOS_SQL}) AS media_leitos
-        FROM estabelecimentos_pe_historico
-        WHERE "CODUFMUN" = $1 AND "TP_UNID" = $2
-        GROUP BY competencia
-        ORDER BY competencia`,
-      [municipio, tipo]
+          COUNT(*) FILTER (WHERE h."VINC_SUS" = '1') AS total_sus,
+          AVG(${LEITOS_SQL}) AS media_leitos,
+          AVG(${LEITOS_COMPLEMENTARES_SQL}) AS media_complementares,
+          AVG(COALESCE(lt.leitos_sus, 0)) AS media_leitos_sus
+        FROM estabelecimentos_pe_historico h
+        LEFT JOIN (
+          SELECT "CNES", competencia,
+            SUM(COALESCE(NULLIF("QT_SUS", '')::int, 0)) AS leitos_sus
+          FROM leitos_pe_historico
+          GROUP BY "CNES", competencia
+        ) lt ON lt."CNES" = h."CNES" AND lt.competencia = h.competencia
+        WHERE h."TP_UNID" = $1 ${condMunicipio}
+        GROUP BY h.competencia
+        ORDER BY h.competencia`,
+      params
     );
     res.json(
       r.rows.map((row) => ({
@@ -315,8 +340,64 @@ app.get("/api/mercado", async (req, res) => {
         total: parseInt(row.total, 10),
         total_sus: parseInt(row.total_sus, 10),
         media_leitos: parseFloat(row.media_leitos || 0).toFixed(1),
+        media_complementares: parseFloat(row.media_complementares || 0).toFixed(1),
+        media_leitos_sus: parseFloat(row.media_leitos_sus || 0).toFixed(1),
       }))
     );
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ mensagem: err.message });
+  }
+});
+
+// --- Visão geral de Pernambuco: números agregados do estado inteiro ---
+app.get("/api/visao-geral", async (req, res) => {
+  try {
+    const [evolucaoTotal, distribuicaoTipo, leitosAtuais, leitosSusAtual, vinculoSus, associados] =
+      await Promise.all([
+        pool.query(
+          `SELECT competencia, COUNT(*) AS total
+           FROM estabelecimentos_pe_historico
+           GROUP BY competencia ORDER BY competencia`
+        ),
+        pool.query(
+          `SELECT "TP_UNID" AS codigo, COUNT(*) AS total
+           FROM estabelecimentos_pe GROUP BY "TP_UNID" ORDER BY COUNT(*) DESC LIMIT 6`
+        ),
+        pool.query(
+          `SELECT SUM(leitos) AS total_leitos, SUM(complementares) AS total_complementares
+           FROM (SELECT ${LEITOS_SQL} AS leitos, ${LEITOS_COMPLEMENTARES_SQL} AS complementares
+                 FROM estabelecimentos_pe) t`
+        ),
+        pool.query(
+          `SELECT SUM(COALESCE(NULLIF("QT_SUS", '')::int, 0)) AS total_sus
+           FROM leitos_pe_historico
+           WHERE competencia = (SELECT MAX(competencia) FROM leitos_pe_historico)`
+        ),
+        pool.query(
+          `SELECT COUNT(*) FILTER (WHERE "VINC_SUS" = '1') AS com_sus, COUNT(*) AS total
+           FROM estabelecimentos_pe`
+        ),
+        pool.query(`SELECT COUNT(*) AS total FROM identidade_associados`),
+      ]);
+
+    res.json({
+      evolucao_total: evolucaoTotal.rows.map((r) => ({
+        competencia: r.competencia,
+        total: parseInt(r.total, 10),
+      })),
+      distribuicao_tipo: distribuicaoTipo.rows.map((r) => ({
+        codigo: r.codigo,
+        label: TP_UNID_LABELS[r.codigo] || `Código ${r.codigo}`,
+        total: parseInt(r.total, 10),
+      })),
+      total_leitos: parseInt(leitosAtuais.rows[0].total_leitos || 0, 10),
+      total_leitos_complementares: parseInt(leitosAtuais.rows[0].total_complementares || 0, 10),
+      total_leitos_sus: parseInt(leitosSusAtual.rows[0].total_sus || 0, 10),
+      total_estabelecimentos: parseInt(vinculoSus.rows[0].total, 10),
+      total_com_vinculo_sus: parseInt(vinculoSus.rows[0].com_sus, 10),
+      total_associados_sindhospe: parseInt(associados.rows[0].total, 10),
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ mensagem: err.message });
