@@ -13,6 +13,7 @@ const { Pool } = require("pg");
 
 const app = express();
 app.use(cors());
+app.use(express.json());
 
 // Usa a DATABASE_URL do Neon (produção/nuvem) se existir; senão, cai no banco
 // local do WSL (desenvolvimento). Isso permite rodar em ambos os lugares
@@ -467,6 +468,33 @@ app.get("/api/representatividade", async (req, res) => {
       estabelecimentos_associados_no_cnes: parseInt(totalAssociados.rows[0].estabelecimentos_associados, 10),
       estabelecimentos_totais_estado: parseInt(totalEstado.rows[0].estabelecimentos_estado, 10),
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ mensagem: err.message });
+  }
+});
+
+// --- Solicitação de revisão de dados (o associado pede correção de algo desatualizado) ---
+app.post("/api/solicitar-revisao", async (req, res) => {
+  const { cnes, nome, mensagem } = req.body;
+  if (!cnes || !nome) {
+    return res.status(400).json({ mensagem: "cnes e nome são obrigatórios." });
+  }
+  try {
+    await pool.query(
+      `CREATE TABLE IF NOT EXISTS solicitacoes_revisao (
+         id SERIAL PRIMARY KEY,
+         cnes TEXT,
+         nome TEXT,
+         mensagem TEXT,
+         criado_em TIMESTAMP DEFAULT NOW()
+       )`
+    );
+    const r = await pool.query(
+      `INSERT INTO solicitacoes_revisao (cnes, nome, mensagem) VALUES ($1, $2, $3) RETURNING id, criado_em`,
+      [cnes, nome, mensagem || null]
+    );
+    res.json({ ok: true, id: r.rows[0].id, criado_em: r.rows[0].criado_em });
   } catch (err) {
     console.error(err);
     res.status(500).json({ mensagem: err.message });
