@@ -429,6 +429,50 @@ app.get("/api/visao-geral", async (req, res) => {
   }
 });
 
+// --- Poder de representação do SINDHOSPE: quanto os associados pesam no estado ---
+app.get("/api/representatividade", async (req, res) => {
+  try {
+    const [totalEstado, totalAssociados, porTipo] = await Promise.all([
+      pool.query(
+        `SELECT
+            SUM(${LEITOS_SQL}) AS leitos_estado,
+            COUNT(*) AS estabelecimentos_estado,
+            COUNT(*) FILTER (WHERE "VINC_SUS" = '1') AS estabelecimentos_sus_estado
+          FROM estabelecimentos_pe`
+      ),
+      pool.query(
+        `SELECT
+            SUM(${LEITOS_SQL}) AS leitos_associados,
+            COUNT(DISTINCT e."CNES") AS estabelecimentos_associados
+          FROM estabelecimentos_pe e
+          JOIN identidade_associados a ON a.cnes = e."CNES"
+          WHERE a.situacao = 'Filiado'`
+      ),
+      pool.query(
+        `SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE cnes NOT LIKE 'REG%') AS com_cnes
+          FROM identidade_associados WHERE situacao = 'Filiado'`
+      ),
+    ]);
+
+    const leitosEstado = parseInt(totalEstado.rows[0].leitos_estado || 0, 10);
+    const leitosAssociados = parseInt(totalAssociados.rows[0].leitos_associados || 0, 10);
+    const pctLeitos = leitosEstado > 0 ? Math.round((leitosAssociados / leitosEstado) * 100) : 0;
+
+    res.json({
+      total_associados_filiados: parseInt(porTipo.rows[0].total, 10),
+      associados_com_cnes: parseInt(porTipo.rows[0].com_cnes, 10),
+      leitos_associados: leitosAssociados,
+      leitos_estado: leitosEstado,
+      percentual_leitos_representados: pctLeitos,
+      estabelecimentos_associados_no_cnes: parseInt(totalAssociados.rows[0].estabelecimentos_associados, 10),
+      estabelecimentos_totais_estado: parseInt(totalEstado.rows[0].estabelecimentos_estado, 10),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ mensagem: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Backend do Portal SINDHOSPE rodando em http://localhost:${PORT}`);
