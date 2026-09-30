@@ -505,3 +505,46 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Backend do Portal SINDHOSPE rodando em http://localhost:${PORT}`);
 });
+
+// =====================================================================
+// NOVO ENDPOINT — cole isso no seu server.js (em qualquer lugar entre os
+// outros app.get(...), por exemplo logo antes do endpoint
+// "/api/estabelecimento/:cnes"). Não remove nada que já existe.
+//
+// Por que esse endpoint existe:
+// Hoje GET /api/estabelecimentos devolve a lista INTEIRA dos 269
+// associados (nome + CNPJ) pra qualquer um, mesmo sem login — é isso que
+// a tela de login usava pra sugerir nomes, e é isso que expõe os dados de
+// todo mundo. Esse endpoint novo resolve isso: só aceita busca com 2+
+// letras, devolve no máximo 8 resultados, e nunca inclui CNPJ — só o
+// suficiente pra sugerir "Hospital Esperança" quando alguém digita "Hosp".
+// =====================================================================
+app.get("/api/estabelecimentos/buscar", async (req, res) => {
+  const termo = (req.query.q || "").toString().trim();
+
+  // Exige pelo menos 2 letras — assim ninguém consegue "ver tudo de uma
+  // vez" só chamando a busca vazia ou com 1 letra.
+  if (termo.length < 2) {
+    return res.json([]);
+  }
+
+  try {
+    const resultado = await pool.query(
+      `SELECT DISTINCT ON (cnes) cnes, nome_fantasia
+       FROM identidade_associados
+       WHERE nome_fantasia ILIKE $1
+       ORDER BY cnes
+       LIMIT 8`,
+      [`%${termo}%`]
+    );
+
+    const sugestoes = resultado.rows.sort((a, b) =>
+      a.nome_fantasia.localeCompare(b.nome_fantasia, "pt-BR")
+    );
+
+    res.json(sugestoes);
+  } catch (erro) {
+    console.error("Erro em /api/estabelecimentos/buscar:", erro);
+    res.status(500).json({ erro: "Erro ao buscar estabelecimentos." });
+  }
+});
