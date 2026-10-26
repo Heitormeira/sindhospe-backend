@@ -1,0 +1,37 @@
+rules_version = '2';
+
+// Portal SINDHOSPE — regras do Firestore.
+// Tudo que não está liberado aqui é negado. Os dados são gravados só pelo
+// importador (Admin SDK, que ignora estas regras).
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function logado() { return request.auth != null; }
+
+    // Ficha + evolução: só o dono do CNES (claim definida pelo importador).
+    match /associados/{cnes} {
+      allow get: if logado() && request.auth.token.cnes == cnes;
+    }
+
+    match /mercado/{id}  { allow get: if logado(); }
+    match /publico/{id}  { allow get: if logado(); }
+
+    // Busca do login: sem login, só consultas de até 8 resultados.
+    match /busca/{cnes} {
+      allow list: if request.query.limit <= 8;
+    }
+
+    // Pedido de revisão: o associado cria para o próprio CNES; ninguém lê pelo app.
+    match /solicitacoes_revisao/{id} {
+      allow create: if logado()
+        && request.resource.data.keys().hasOnly(['cnes', 'nome', 'mensagem', 'criado_em'])
+        && request.resource.data.cnes == request.auth.token.cnes
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() > 0
+        && request.resource.data.nome.size() <= 200
+        && (!('mensagem' in request.resource.data)
+            || (request.resource.data.mensagem is string
+                && request.resource.data.mensagem.size() <= 2000))
+        && request.resource.data.criado_em == request.time;
+    }
+  }
+}
