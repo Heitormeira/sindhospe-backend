@@ -54,6 +54,11 @@ test("logado sem claim cnes não lê associados", async () => {
   const db = env.authenticatedContext("semClaim").firestore();
   await assertFails(getDoc(doc(db, "associados/A")));
 });
+test("conta criada por fora (sem claim cnes) não lê publico nem mercado", async () => {
+  const db = env.authenticatedContext("semClaim").firestore();
+  await assertFails(getDoc(doc(db, "publico/visao-geral")));
+  await assertFails(getDoc(doc(db, "mercado/05_PE")));
+});
 
 // --- sem login ---
 test("sem login não lê associados", async () => { await assertFails(getDoc(doc(semLogin(), "associados/A"))); });

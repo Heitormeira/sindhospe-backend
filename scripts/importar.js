@@ -4,6 +4,8 @@
  *
  *   npm run importar:seco   grava os documentos em ./saida (nada vai para o Firebase)
  *   npm run importar        grava no Firestore, apaga documentos órfãos e sincroniza as contas
+ *     -- --forcar           aceita importação com bem menos associados que o Firestore atual
+ *     -- --resetar-senhas   redefine a senha de TODAS as contas para SENHA_DEMO (derruba sessões)
  *
  * Segredos: ../segredos/.env (DATABASE_URL, SENHA_DEMO) e ../segredos/firebase-admin.json,
  * ou a pasta indicada em SEGREDOS_DIR.
@@ -46,7 +48,10 @@ async function main() {
     console.log(`Modo seco: ${docs.size} documentos gravados em ${PASTA_SAIDA}`);
   } else {
     const { publicar } = require("./publicar");
-    await publicar(docs, segredos);
+    await publicar(docs, segredos, {
+      forcar: process.argv.includes("--forcar"),
+      resetarSenhas: process.argv.includes("--resetar-senhas"),
+    });
   }
   console.log(`Concluído em ${Math.round((Date.now() - inicio) / 1000)}s.`);
 }

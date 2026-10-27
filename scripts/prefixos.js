@@ -1,7 +1,10 @@
 /**
- * Índice de busca do login: o Firestore não faz ILIKE, então cada nome vira
- * a lista dos prefixos (2+ letras) de cada palavra, já normalizados.
- * A mesma regra de normalização existe no frontend (src/app/busca.js).
+ * Índice de busca do login. O Firestore não faz ILIKE, então cada nome vira a
+ * lista dos prefixos (2+ caracteres) das FRASES que começam em cada palavra:
+ *   "Hospital Santa Joana" -> "ho".."hospital santa joana", "sa".."santa joana", "jo".."joana"
+ * A busca vira um array-contains exato com o termo digitado normalizado, e o
+ * limit(8) do Firestore já se aplica ao resultado filtrado (como o LIMIT 8 da API).
+ * A mesma regra existe no frontend (src/app/busca.mjs) — manter as duas iguais.
  */
 
 function normalizar(texto) {
@@ -17,11 +20,21 @@ function palavras(texto) {
 }
 
 function gerarPrefixos(nome) {
+  const lista = palavras(nome);
   const prefixos = new Set();
-  for (const palavra of palavras(nome)) {
-    for (let i = 2; i <= palavra.length; i++) prefixos.add(palavra.slice(0, i));
+  for (let inicio = 0; inicio < lista.length; inicio++) {
+    const frase = lista.slice(inicio).join(" ");
+    for (let i = 2; i <= frase.length; i++) {
+      if (frase[i - 1] !== " ") prefixos.add(frase.slice(0, i));
+    }
   }
   return [...prefixos];
 }
 
-module.exports = { normalizar, palavras, gerarPrefixos };
+/** O que o usuário digitou, no formato do índice; null se tiver menos de 2 caracteres úteis. */
+function termoDeBusca(digitado) {
+  const termo = palavras(digitado).join(" ");
+  return termo.length >= 2 ? termo : null;
+}
+
+module.exports = { normalizar, palavras, gerarPrefixos, termoDeBusca };

@@ -10,7 +10,7 @@ const path = require("node:path");
 const { spawn } = require("node:child_process");
 const { carregarSegredos } = require("./segredos");
 const { emParalelo } = require("./documentos");
-const { normalizar, palavras } = require("./prefixos");
+const { palavras, termoDeBusca } = require("./prefixos");
 
 const PORTA = 3099;
 const API = `http://localhost:${PORTA}/api`;
@@ -89,17 +89,31 @@ async function main() {
       comparar(`mercado/${id}`, lerDoc(`mercado/${id}`).serie, await get(rota));
     });
 
-    // Busca: todo resultado da API cujo nome tem uma palavra começando pelo termo
-    // precisa aparecer no índice de prefixos (a API usa ILIKE '%termo%', mais amplo).
-    const busca = listar("busca").map((cnes) => ({ cnes, ...lerDoc(`busca/${cnes}`) }));
-    for (const termo of TERMOS_BUSCA) {
-      const api = await get(`/estabelecimentos/buscar?q=${encodeURIComponent(termo)}`);
-      if (api.length >= 8) continue; // lista truncada pela API; não dá para comparar o conjunto
-      const nosso = new Set(busca.filter((b) => b.prefixos.includes(normalizar(termo))).map((b) => b.cnes));
-      const esperado = api.filter((a) => palavras(a.nome_fantasia).some((p) => p.startsWith(termo))).map((a) => a.cnes);
+    // Busca: simula o Firestore (array-contains + limit 8, ordem por id = CNES, como
+    // o ORDER BY cnes LIMIT 8 da API). Termos: lista fixa + as duas primeiras
+    // palavras do nome de cada associado (o caso que antes falhava).
+    // A API usa ILIKE '%termo%' (mais amplo); comparamos com os resultados dela em
+    // que o termo começa numa palavra, quando ela devolve menos de 8.
+    const busca = listar("busca").map((cnes) => ({ cnes, ...lerDoc(`busca/${cnes}`) })).sort((a, b) => (a.cnes < b.cnes ? -1 : 1));
+    const pesquisar = (termo) => busca.filter((b) => b.prefixos.includes(termoDeBusca(termo))).slice(0, 8).map((b) => b.cnes);
+    const comecaEmPalavra = (nome, termo) => (" " + palavras(nome).join(" ")).includes(" " + termoDeBusca(termo));
+    const termos = [...TERMOS_BUSCA, ...busca.map((b) => palavras(b.nome_fantasia).slice(0, 2).join(" "))];
+    for (const termo of new Set(termos)) {
+      if (!termoDeBusca(termo)) continue;
+      const nosso = new Set(pesquisar(termo));
       comparados++;
-      const faltando = esperado.filter((cnes) => !nosso.has(cnes));
-      if (faltando.length) divergencias.push(`busca "${termo}": faltam ${faltando.join(", ")}`);
+      // 1) quem tem esse começo de nome aparece, se couber nos 8
+      const todos = busca.filter((b) => comecaEmPalavra(b.nome_fantasia, termo));
+      if (todos.length <= 8) {
+        const faltando = todos.filter((b) => !nosso.has(b.cnes)).map((b) => b.cnes);
+        if (faltando.length) divergencias.push(`busca "${termo}": faltam ${faltando.join(", ")}`);
+      }
+      // 2) nada que a API devolvia (começando em palavra) some
+      const api = await get(`/estabelecimentos/buscar?q=${encodeURIComponent(termo)}`);
+      if (api.length >= 8) continue;
+      const esperado = api.filter((a) => comecaEmPalavra(a.nome_fantasia, termo)).map((a) => a.cnes);
+      const faltandoApi = esperado.filter((cnes) => !nosso.has(cnes));
+      if (faltandoApi.length) divergencias.push(`busca "${termo}" (vs API): faltam ${faltandoApi.join(", ")}`);
     }
   } finally {
     servidor.kill();

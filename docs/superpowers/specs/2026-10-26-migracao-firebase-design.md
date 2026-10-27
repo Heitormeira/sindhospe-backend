@@ -66,7 +66,7 @@ Detalhes:
 
 - **Arrays na raiz** (`municipios`, `tipos`, séries de mercado) ficam sob uma chave (`lista`, `serie`), porque um documento do Firestore precisa ser um objeto.
 - **Tipos preservados:** o JSON passa por `JSON.parse(JSON.stringify(...))` antes de gravar, mantendo strings como `"12.3"` (resultado de `toFixed`) e contagens do `pg` exatamente como a API devolve hoje.
-- **`prefixos`:** o nome é normalizado (minúsculas, sem acentos), dividido em palavras, e cada palavra gera seus prefixos com 2 ou mais caracteres. Exemplo: "Hospital Esperança" gera `ho, hos, hosp, …, es, esp, …, esperanca`. A busca usa `where("prefixos", "array-contains", termoNormalizado).limit(8)`, o equivalente ao `ILIKE '%termo%'` de hoje no início de cada palavra. Com várias palavras digitadas, a consulta usa a mais longa e o cliente filtra os até 8 resultados pelas demais. A ordenação por nome também é feita no cliente, sem índice composto.
+- **`prefixos`:** o nome é normalizado (minúsculas, sem acentos, pontuação vira espaço) e o índice guarda os prefixos (2+ caracteres) das **frases que começam em cada palavra**: "Hospital Santa Joana" gera `ho`…`hospital santa joana`, `sa`…`santa joana`, `jo`…`joana`. A busca é `where("prefixos", "array-contains", termoNormalizado).limit(8)`: o filtro inteiro roda no Firestore e o limite de 8 vale para resultados que já casam, como o `ILIKE … LIMIT 8` da API (que também ordenava por CNES). Diferença: só casa a partir do início de uma palavra. (Revisado após a revisão final: a versão anterior, palavra mais longa + filtro no cliente, perdia resultados em 46 de 197 buscas por duas palavras.)
 - **Linhas sem CNES** em `identidade_associados` são ignoradas e listadas no relatório do script.
 
 ## 5. Autenticação
@@ -83,7 +83,7 @@ Detalhes:
 rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
-    function logado() { return request.auth != null; }
+    function logado() { return request.auth != null && request.auth.token.cnes is string; }
 
     match /associados/{cnes} {
       allow get: if logado() && request.auth.token.cnes == cnes;
