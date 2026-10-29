@@ -2,16 +2,27 @@
   "name": "sindhospe-backend",
   "version": "1.0.0",
   "main": "index.js",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test test/segredos.test.js test/prefixos.test.js",
+    "importar": "node scripts/importar.js",
+    "importar:seco": "node scripts/importar.js --dry-run",
+    "paridade": "node scripts/paridade.js",
+    "test:regras": "npx -y firebase-tools@15 emulators:exec --only firestore,auth --project demo-sindhospe \"node --test --test-concurrency=1 test/regras.test.js test/publicar.test.js\"",
+    "deploy:regras": "node scripts/deploy-regras.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Portal SINDHOSPE: importador de dados para o Firebase (e API Express legada)",
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
+    "firebase-admin": "^14.5.0",
     "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "firebase": "^13.1.0"
   }
 }

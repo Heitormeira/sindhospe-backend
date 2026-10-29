@@ -5,6 +5,33 @@ API do **Portal SINDHOSPE**, desenvolvida no Projeto Integrador (UNICAP + SINDHO
 - **API em produção:** https://sindhospe-backend.onrender.com
 - **Frontend:** repositório `sindhospe-frontend` (Next.js, hospedado na Vercel)
 
+> **Migração para o Firebase (em andamento).** O portal está passando a ler os dados do **Firestore** e a usar o **Firebase Auth**, com uma conta por associado. Este repositório passa a guardar o **importador** que calcula os indicadores no Neon e os publica no Firebase. A API Express (`server.js`) continua no ar até o frontend novo ser validado em produção. Design e plano: `docs/superpowers/specs/` e `docs/superpowers/plans/`.
+
+## Importador para o Firebase
+
+Segredos ficam **fora** do repositório, na pasta `../segredos/` (ou na pasta indicada em `SEGREDOS_DIR`):
+
+| Arquivo | Conteúdo |
+|---|---|
+| `.env` | `DATABASE_URL=...` (Neon) e `SENHA_DEMO=...` (6+ caracteres, senha inicial das contas) |
+| `firebase-admin.json` | chave da conta de serviço (Firebase → Configurações → Contas de serviço) |
+
+```bash
+npm install
+npm run importar:seco    # calcula tudo e grava em ./saida, sem tocar no Firebase
+npm run paridade         # compara ./saida com a API Express rodando localmente (critério: 0 divergências)
+npm run importar         # publica no Firestore e cria/atualiza as contas (rodar a cada competência do CNES)
+npm run deploy:regras    # publica firestore.rules
+npm test                 # testes unitários
+npm run test:regras      # regras + importador no emulador (precisa de Java 21 no PATH)
+```
+
+- O importador conecta ao Neon **somente leitura** e é idempotente: pode rodar de novo sem duplicar nada.
+- Ele aborta sem alterar nada se a importação trouxer menos de 90% dos associados atuais. Se a redução for real, use `npm run importar -- --forcar`.
+- Contas que já existem não têm a senha trocada, para não derrubar quem está logado. Para redefinir todas as senhas para `SENHA_DEMO`, use `npm run importar -- --resetar-senhas`.
+- Associados que saem do sindicato têm a conta **desativada**, não apagada.
+- Cada importação faz cerca de 2.900 gravações, dentro da cota gratuita de 20 mil por dia.
+
 ## Equipe
 
 | Aluno | RA |

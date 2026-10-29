@@ -1,4 +1,7 @@
 .neon
-.env.local
+.env*
+*-admin.json
 node_modules/
 *.log
+saida/
+.firebase/
