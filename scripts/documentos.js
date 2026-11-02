@@ -5,6 +5,8 @@
  */
 const c = require("./consultas");
 const { gerarPrefixos } = require("./prefixos");
+const { carregarBaseAtual } = require("./consultas-atual");
+const { montarAtual, montarSetores, montarPainelSindicato } = require("./atual");
 
 // Converte para JSON puro (Date -> string, remove undefined), como res.json() fazia.
 const json = (x) => JSON.parse(JSON.stringify(x));
@@ -21,8 +23,14 @@ async function emParalelo(itens, limite, fn) {
   await Promise.all(Array.from({ length: Math.min(limite, itens.length) }, trabalhador));
 }
 
-async function montarDocumentos(db, { log = console.log } = {}) {
+async function montarDocumentos(db, { log = console.log, extra } = {}) {
   const docs = new Map();
+
+  // Bloco atual (reunião de 28/10): uma competência só, por categoria de estabelecimento.
+  const base = await carregarBaseAtual(db, extra);
+  log(`Competência atual do CNES: ${base.competencia}`);
+  docs.set("publico/setores", json(montarSetores(base)));
+  docs.set("sindicato/painel", json(montarPainelSindicato(base)));
 
   // Públicos
   docs.set("publico/visao-geral", json(await c.getVisaoGeral(db)));
@@ -41,7 +49,7 @@ async function montarDocumentos(db, { log = console.log } = {}) {
   await emParalelo(associados, 4, async ({ cnes, nome_fantasia }, i) => {
     const ficha = await c.getEstabelecimento(db, cnes);
     const evolucao = await c.getEvolucao(db, cnes);
-    docs.set(`associados/${cnes}`, json({ ...ficha, evolucao }));
+    docs.set(`associados/${cnes}`, json({ ...ficha, evolucao, atual: montarAtual(base, cnes) }));
     docs.set(`busca/${cnes}`, { nome_fantasia, prefixos: gerarPrefixos(nome_fantasia) });
     if ((i + 1) % 50 === 0) log(`  associados: ${i + 1}/${associados.length}`);
   });

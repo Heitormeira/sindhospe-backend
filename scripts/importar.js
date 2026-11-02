@@ -17,6 +17,16 @@ const { abrirConexao } = require("./consultas");
 const { montarDocumentos, contarPorColecao } = require("./documentos");
 
 const PASTA_SAIDA = path.resolve(__dirname, "../saida");
+const PASTA_DADOS = path.resolve(__dirname, "../dados");
+
+/** Agregados do DATASUS mais recentes (npm run baixar-cnes -- AAAAMM). */
+function lerDadosCnes() {
+  const arquivos = fs.existsSync(PASTA_DADOS) ? fs.readdirSync(PASTA_DADOS).filter((f) => /^cnes-\d{6}\.json$/.test(f)).sort() : [];
+  if (!arquivos.length) throw new Error("Faltam os agregados do DATASUS. Rode: npm run baixar-cnes -- AAAAMM");
+  const arquivo = path.join(PASTA_DADOS, arquivos.at(-1));
+  console.log(`Agregados do DATASUS: ${arquivos.at(-1)}`);
+  return JSON.parse(fs.readFileSync(arquivo, "utf8"));
+}
 
 function gravarSaida(docs) {
   fs.rmSync(PASTA_SAIDA, { recursive: true, force: true });
@@ -37,7 +47,7 @@ async function main() {
   let docs;
   try {
     console.log("Calculando documentos...");
-    docs = await montarDocumentos(db);
+    docs = await montarDocumentos(db, { extra: lerDadosCnes() });
   } finally {
     await db.end();
   }

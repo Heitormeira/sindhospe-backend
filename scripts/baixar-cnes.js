@@ -21,7 +21,7 @@ const FTP = "ftp://ftp.datasus.gov.br/dissemin/publicos/CNES/200508_";
 const PASTA_DADOS = path.resolve(__dirname, "../dados");
 const PASTA_BRUTOS = path.join(PASTA_DADOS, "brutos");
 const DICIONARIOS = [
-  "CNV/equipam2507.cnv", "CNV/equipam2508.cnv", "CNV/Esp_leit.CNV", "CNV/tip1leit.cnv", "DBF/SRN_ORD_N.dbf",
+  "CNV/Equip_Tp.cnv", "CNV/equipam2507.cnv", "CNV/equipam2508.cnv", "CNV/Esp_leit.CNV", "CNV/tip1leit.cnv", "DBF/SRN_ORD_N.dbf",
 ];
 
 function executar(cmd, args) {
@@ -107,7 +107,7 @@ function lerDicionarios() {
   const ler = (f) => fs.readFileSync(path.join(PASTA_BRUTOS, "tab", f));
   const limpar = (mapa) => Object.fromEntries(Object.entries(mapa).map(([k, v]) => [k, limparRotulo(v)]));
   return {
-    equipamentos: limpar({ ...lerCnv(ler("CNV/equipam2507.cnv")), ...lerCnv(ler("CNV/equipam2508.cnv")) }),
+    equipamentos: limpar({ ...lerCnv(ler("CNV/Equip_Tp.cnv")), ...lerCnv(ler("CNV/equipam2507.cnv")), ...lerCnv(ler("CNV/equipam2508.cnv")) }),
     leitos_tipo: limpar(lerCnv(ler("CNV/tip1leit.cnv"))),
     leitos_especialidade: limpar(lerCnv(ler("CNV/Esp_leit.CNV"))),
     servicos: Object.fromEntries(lerDbf(ler("DBF/SRN_ORD_N.dbf")).registros.map((r) => [r.CHAVE, limparRotulo(r.DS_SERV)])),

@@ -74,7 +74,8 @@ async function main() {
     // Associados: ficha + evolução, todos
     const associados = listar("associados");
     await emParalelo(associados, 4, async (cnes) => {
-      const { evolucao, ...ficha } = lerDoc(`associados/${cnes}`);
+      // `atual` é o bloco novo (reunião de 28/10) e não existe na API antiga.
+      const { evolucao, atual, ...ficha } = lerDoc(`associados/${cnes}`);
       comparar(`associados/${cnes} (ficha)`, ficha, await get(`/estabelecimento/${cnes}`));
       comparar(`associados/${cnes} (evolucao)`, evolucao, await get(`/evolucao/${cnes}`));
     });

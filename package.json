@@ -4,7 +4,7 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "test": "node --test test/segredos.test.js test/prefixos.test.js test/datasus.test.js test/categorias.test.js test/baixar-cnes.test.js",
+    "test": "node --test test/segredos.test.js test/prefixos.test.js test/datasus.test.js test/categorias.test.js test/baixar-cnes.test.js test/atual.test.js",
     "importar": "node scripts/importar.js",
     "importar:seco": "node scripts/importar.js --dry-run",
     "paridade": "node scripts/paridade.js",
