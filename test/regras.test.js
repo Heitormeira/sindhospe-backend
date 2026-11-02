@@ -98,3 +98,32 @@ test("solicitação com criado_em forjado é negada", async () => {
 });
 test("solicitação sem login é negada", async () => { await assertFails(addDoc(solicitacoes(semLogin()), valida())); });
 test("ninguém lê solicitações pelo app", async () => { await assertFails(getDoc(doc(comoA(), "solicitacoes_revisao/x"))); });
+
+// --- perfil do sindicato (claim perfil = "sindicato") ---
+const comoSindicato = () => env.authenticatedContext("uidSind", { perfil: "sindicato" }).firestore();
+const seedPainel = () =>
+  env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), "sindicato/painel"), { resumo: {} }); });
+
+test("sindicato lê o painel", async () => { await seedPainel(); await assertSucceeds(getDoc(doc(comoSindicato(), "sindicato/painel"))); });
+test("associado não lê o painel do sindicato", async () => { await seedPainel(); await assertFails(getDoc(doc(comoA(), "sindicato/painel"))); });
+test("sem login não lê o painel do sindicato", async () => { await seedPainel(); await assertFails(getDoc(doc(semLogin(), "sindicato/painel"))); });
+test("perfil forjado diferente de sindicato não lê o painel", async () => {
+  await seedPainel();
+  const db = env.authenticatedContext("x", { perfil: "admin" }).firestore();
+  await assertFails(getDoc(doc(db, "sindicato/painel")));
+});
+test("sindicato lê a ficha de qualquer associado, publico e mercado", async () => {
+  const db = comoSindicato();
+  await assertSucceeds(getDoc(doc(db, "associados/A")));
+  await assertSucceeds(getDoc(doc(db, "associados/B")));
+  await assertSucceeds(getDoc(doc(db, "publico/visao-geral")));
+  await assertSucceeds(getDoc(doc(db, "mercado/05_PE")));
+});
+test("sindicato lista as solicitações de revisão", async () => { await assertSucceeds(getDocs(solicitacoes(comoSindicato()))); });
+test("associado não lista as solicitações de revisão", async () => { await assertFails(getDocs(solicitacoes(comoA()))); });
+test("sindicato não grava nada", async () => {
+  const db = comoSindicato();
+  await assertFails(setDoc(doc(db, "sindicato/painel"), { x: 1 }));
+  await assertFails(setDoc(doc(db, "associados/A"), { x: 1 }));
+  await assertFails(addDoc(solicitacoes(db), valida({ cnes: "A" })));
+});

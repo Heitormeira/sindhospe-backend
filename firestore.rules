@@ -3,26 +3,35 @@ rules_version = '2';
 // Portal SINDHOSPE — regras do Firestore.
 // Tudo que não está liberado aqui é negado. Os dados são gravados só pelo
 // importador (Admin SDK, que ignora estas regras).
+// Perfis (custom claims definidas pelo importador):
+//   { cnes: "<CNES>" }        associado: vê só o próprio estabelecimento
+//   { perfil: "sindicato" }   SINDHOSPE: vê o painel consolidado e todos os associados
 service cloud.firestore {
   match /databases/{db}/documents {
-    function logado() { return request.auth != null && request.auth.token.cnes is string; }
+    function associado() { return request.auth != null && request.auth.token.cnes is string; }
+    function sindicato() { return request.auth != null && request.auth.token.perfil == 'sindicato'; }
+    function logado() { return associado() || sindicato(); }
 
-    // Ficha + evolução: só o dono do CNES (claim definida pelo importador).
+    // Ficha + evolução: o dono do CNES ou o sindicato.
     match /associados/{cnes} {
-      allow get: if logado() && request.auth.token.cnes == cnes;
+      allow get: if (associado() && request.auth.token.cnes == cnes) || sindicato();
     }
 
     match /mercado/{id}  { allow get: if logado(); }
     match /publico/{id}  { allow get: if logado(); }
+
+    // Painel consolidado dos associados: só o sindicato.
+    match /sindicato/{id} { allow get: if sindicato(); }
 
     // Busca do login: sem login, só consultas de até 8 resultados.
     match /busca/{cnes} {
       allow list: if request.query.limit <= 8;
     }
 
-    // Pedido de revisão: o associado cria para o próprio CNES; ninguém lê pelo app.
+    // Pedido de revisão: o associado cria para o próprio CNES; só o sindicato lê.
     match /solicitacoes_revisao/{id} {
-      allow create: if logado()
+      allow read: if sindicato();
+      allow create: if associado()
         && request.resource.data.keys().hasOnly(['cnes', 'nome', 'mensagem', 'criado_em'])
         && request.resource.data.cnes == request.auth.token.cnes
         && request.resource.data.nome is string
