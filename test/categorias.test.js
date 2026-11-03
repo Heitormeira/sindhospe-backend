@@ -36,6 +36,7 @@ test("perfilDeServico escolhe o serviço que define o subgrupo, com prioridade",
   assert.equal(perfilDeServico(["145", "120"]).codigo, "patologia");
   assert.equal(perfilDeServico(["144"]).codigo, "laboratorio");
   assert.equal(perfilDeServico(["159"]), null);
+  assert.equal(perfilDeServico(["121", "130"]).codigo, "dialise", "clínica de diálise com imagem continua sendo de diálise");
   assert.equal(perfilDeServico([]), null);
 });
 

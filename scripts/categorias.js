@@ -65,6 +65,7 @@ function percentil(valores, valor) {
 // radiologia com clínicas de radiologia"). Definido pelo serviço especializado do CNES,
 // em ordem de prioridade quando o estabelecimento tem mais de um.
 const PERFIS_SERVICO = [
+  { codigo: "dialise", label: "nefrologia e diálise", servicos: ["130"] },
   { codigo: "imagem", label: "diagnóstico por imagem", servicos: ["121"] },
   { codigo: "patologia", label: "anatomia patológica", servicos: ["120"] },
   { codigo: "laboratorio", label: "laboratório clínico", servicos: ["145", "144"] },
