@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { categoriaDoTipo, grupoProfissional, mediana, percentil, CATEGORIAS } = require("../scripts/categorias");
+const { categoriaDoTipo, grupoProfissional, mediana, percentil, CATEGORIAS, perfilDeServico } = require("../scripts/categorias");
 
 test("categoriaDoTipo agrupa os tipos de unidade do CNES", () => {
   for (const t of ["05", "07", "15", "62"]) assert.equal(categoriaDoTipo(t), "hospital", t);
@@ -29,4 +29,17 @@ test("mediana e percentil para comparar com o mesmo tipo", () => {
   assert.equal(mediana([1, 2, 3, 4]), 2.5);
   assert.equal(percentil([1, 2, 3, 4], 3), 50); // 50% têm menos que 3
   assert.equal(percentil([], 3), 0);
+});
+
+test("perfilDeServico escolhe o serviço que define o subgrupo, com prioridade", () => {
+  assert.equal(perfilDeServico(["159", "121"]).codigo, "imagem");
+  assert.equal(perfilDeServico(["145", "120"]).codigo, "patologia");
+  assert.equal(perfilDeServico(["144"]).codigo, "laboratorio");
+  assert.equal(perfilDeServico(["159"]), null);
+  assert.equal(perfilDeServico([]), null);
+});
+
+test("percentil nunca diz 100%", () => {
+  assert.equal(percentil([1, 2, 3], 3), 67);
+  assert.equal(percentil(Array.from({ length: 300 }, (_, i) => i), 299), 99);
 });

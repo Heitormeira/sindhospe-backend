@@ -52,10 +52,31 @@ function mediana(valores) {
   return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
 }
 
-/** % dos valores estritamente menores que `valor` (mesma regra do percentil de leitos da API antiga). */
+/**
+ * % dos valores estritamente menores que `valor` (mesma regra do percentil de leitos da API antiga).
+ * Limitado a 99: o próprio estabelecimento está no grupo, então "mais que 100%" não existe.
+ */
 function percentil(valores, valor) {
   if (!valores.length) return 0;
-  return Math.round((valores.filter((x) => x < valor).length * 100) / valores.length);
+  return Math.min(99, Math.round((valores.filter((x) => x < valor).length * 100) / valores.length));
 }
 
-module.exports = { CATEGORIAS, categoriaDoTipo, GRUPOS_PROFISSIONAIS, grupoProfissional, mediana, percentil };
+// Subgrupo de comparação para quem não é hospital (reunião de 28/10: "clínica de
+// radiologia com clínicas de radiologia"). Definido pelo serviço especializado do CNES,
+// em ordem de prioridade quando o estabelecimento tem mais de um.
+const PERFIS_SERVICO = [
+  { codigo: "imagem", label: "diagnóstico por imagem", servicos: ["121"] },
+  { codigo: "patologia", label: "anatomia patológica", servicos: ["120"] },
+  { codigo: "laboratorio", label: "laboratório clínico", servicos: ["145", "144"] },
+  { codigo: "endoscopia", label: "endoscopia", servicos: ["142"] },
+  { codigo: "oftalmologia", label: "oftalmologia", servicos: ["131"] },
+  { codigo: "graficos", label: "métodos gráficos (ECG, EEG etc.)", servicos: ["122"] },
+  { codigo: "fisioterapia", label: "fisioterapia", servicos: ["126"] },
+];
+
+function perfilDeServico(servicos) {
+  const s = new Set(servicos || []);
+  return PERFIS_SERVICO.find((p) => p.servicos.some((x) => s.has(x))) || null;
+}
+
+module.exports = { CATEGORIAS, categoriaDoTipo, GRUPOS_PROFISSIONAIS, grupoProfissional, mediana, percentil, PERFIS_SERVICO, perfilDeServico };

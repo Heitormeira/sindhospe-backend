@@ -18,6 +18,7 @@ function baseFalsa() {
       ["C1", cad("261160", "39")],
       ["C2", cad("261160", "39")],
       ["C3", cad("260790", "39")],
+      ["C4", cad("260790", "39")],
     ]),
     leitos: new Map([
       ["H1", { total: 250, sus: 3, nao_sus: 247, tipos: { 1: { e: 48, s: 0 }, 3: { e: 117, s: 3 }, 2: { e: 85, s: 0 } }, esp: { 75: { tipo: "3", e: 60, s: 3 }, 33: { tipo: "2", e: 85, s: 0 } } }],
@@ -43,8 +44,9 @@ function baseFalsa() {
       estabelecimentos: {
         H1: { eq: { "0113": [3, 2, 1] }, pf: { t: 185, g: { medicos: 172, enfermeiros: 13 } }, sr: ["121"], hb: 3 },
         C1: { eq: { "0113": [2, 2, 0], "0111": [1, 1, 0] }, pf: { t: 10, g: { tec_radiologia: 4 } }, sr: ["121", "999"], hb: 0 },
-        C2: { eq: { "0113": [1, 1, 0] }, pf: { t: 5, g: {} }, sr: [], hb: 0 },
-        C3: { eq: { "0113": [5, 5, 0] }, pf: { t: 30, g: {} }, sr: [], hb: 0 },
+        C2: { eq: { "0113": [1, 1, 0] }, pf: { t: 5, g: {} }, sr: ["121"], hb: 0 },
+        C3: { eq: { "0113": [5, 5, 0] }, pf: { t: 30, g: {} }, sr: ["121"], hb: 0 },
+        C4: { eq: {}, pf: { t: 1, g: {} }, sr: ["145"], hb: 0 }, // laboratório: outro subgrupo
       },
     },
   };
@@ -77,8 +79,11 @@ test("clínica: sem bloco de leitos e comparada com o mesmo tipo", () => {
   assert.equal(a.equipamentos.total, 3);
   assert.equal(a.equipamentos.itens[0].label, "Ultrassom Doppler Colorido");
   assert.equal(a.equipamentos.itens[0].grupo, "Diagnóstico por imagem");
-  assert.deepEqual(a.equipamentos.comparacao, { tipo: "39", estabelecimentos: 3, mediana: 3, percentil: 33 });
-  assert.deepEqual(a.profissionais.comparacao, { tipo: "39", estabelecimentos: 3, mediana: 10, percentil: 33 });
+  // radiologia comparada só com radiologia (o laboratório C4 fica de fora), e só com quem tem o item
+  const grupo = "Diagnóstico e terapia (SADT) · diagnóstico por imagem";
+  assert.deepEqual(a.equipamentos.comparacao, { grupo, estabelecimentos: 3, mediana: 3, percentil: 33 });
+  assert.deepEqual(a.profissionais.comparacao, { grupo, estabelecimentos: 3, mediana: 10, percentil: 33 });
+  assert.equal(montarAtual(baseFalsa(), "C4").equipamentos.comparacao, null, "sem pares com equipamentos");
   assert.deepEqual(a.servicos, [
     { codigo: "121", label: "Servico de diagnostico por imagem" },
     { codigo: "999", label: "Serviço 999" },
@@ -115,7 +120,7 @@ test("setores: estado × associados por categoria", () => {
   assert.deepEqual(hosp.estado, { estabelecimentos: 3, com_leitos: 3, leitos: 500, leitos_sus: 203, leitos_complementares: 117, equipamentos: 3, profissionais: 185 });
   assert.deepEqual(hosp.associados, { estabelecimentos: 1, com_leitos: 1, leitos: 250, leitos_sus: 3, leitos_complementares: 117, equipamentos: 3, profissionais: 185 });
   const diag = s.categorias.find((c) => c.codigo === "diagnostico");
-  assert.equal(diag.estado.estabelecimentos, 3);
+  assert.equal(diag.estado.estabelecimentos, 4);
   assert.equal(diag.associados.estabelecimentos, 1);
   assert.equal(s.associados.sem_cadastro_cnes, 1);
   assert.equal(s.associados.com_leitos, 1);

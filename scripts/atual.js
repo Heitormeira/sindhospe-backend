@@ -6,7 +6,7 @@
  *  - cadastro: última atualização no CNES e licença sanitária informada.
  * Funções puras: recebem a base carregada por consultas-atual.js.
  */
-const { CATEGORIAS, categoriaDoTipo, GRUPOS_PROFISSIONAIS, mediana, percentil } = require("./categorias");
+const { CATEGORIAS, categoriaDoTipo, GRUPOS_PROFISSIONAIS, mediana, percentil, perfilDeServico } = require("./categorias");
 
 const GRUPOS_EQUIPAMENTO = {
   "01": "Diagnóstico por imagem",
@@ -22,6 +22,26 @@ const GRUPOS_EQUIPAMENTO = {
 };
 const ORGAO_LICENCA = { 1: "Vigilância Sanitária Estadual (APEVISA)", 2: "Vigilância Sanitária Municipal" };
 const MESES_EM_DIA = 6;
+const MINIMO_PARES = 3; // menos que isso, a comparação não diz nada
+const TIPOS_HOSPITAL = { "05": "Hospital geral", "07": "Hospital especializado", "15": "Unidade mista", "62": "Hospital/dia" };
+
+/** Grupo de comparação: hospitais pelo tipo de unidade; os demais por categoria + serviço principal. */
+function grupoComparacao(cad, x) {
+  if (!cad) return null;
+  const categoria = categoriaDoTipo(cad.tp_unid);
+  if (categoria === "hospital") return { chave: `tp:${cad.tp_unid}`, label: TIPOS_HOSPITAL[cad.tp_unid] || "Hospital" };
+  const perfil = perfilDeServico(x.sr);
+  return {
+    chave: `${categoria}|${perfil?.codigo || "geral"}`,
+    label: CATEGORIAS[categoria].label + (perfil ? ` · ${perfil.label}` : ""),
+  };
+}
+
+function comparar(grupo, lista, valor) {
+  const pares = lista.filter((v) => v > 0);
+  if (!grupo || pares.length < MINIMO_PARES) return null;
+  return { grupo: grupo.label, estabelecimentos: pares.length, mediana: mediana(pares), percentil: percentil(pares, valor) };
+}
 
 const vazio = { eq: {}, pf: { t: 0, g: {} }, sr: [], hb: 0 };
 const pct = (parte, todo) => (todo > 0 ? Math.round((parte * 1000) / todo) / 10 : 0);
@@ -40,17 +60,17 @@ function indices(base) {
   if (base._indices) return base._indices;
   const leitosMunicipio = {};
   let leitosEstado = 0;
-  const porTipo = {}; // tp_unid -> { eq: [], pf: [] }
+  const porGrupo = {}; // chave do grupo de comparação -> { eq: [], pf: [] }
   for (const [cnes, c] of base.cadastros) {
     const total = base.leitos.get(cnes)?.total || 0;
     leitosMunicipio[c.codufmun] = (leitosMunicipio[c.codufmun] || 0) + total;
     leitosEstado += total;
     const x = base.extra.estabelecimentos[cnes] || vazio;
-    const t = (porTipo[c.tp_unid] ??= { eq: [], pf: [] });
+    const t = (porGrupo[grupoComparacao(c, x).chave] ??= { eq: [], pf: [] });
     t.eq.push(somaEq(x.eq));
     t.pf.push(x.pf.t);
   }
-  base._indices = { leitosMunicipio, leitosEstado, porTipo };
+  base._indices = { leitosMunicipio, leitosEstado, porGrupo };
   return base._indices;
 }
 
@@ -91,7 +111,7 @@ function blocoLeitos(base, cnes, cad) {
   };
 }
 
-function blocoEquipamentos(base, x, tpUnid) {
+function blocoEquipamentos(base, x, grupo) {
   const r = base.extra.rotulos.equipamentos;
   const itens = Object.entries(x.eq)
     .map(([codigo, [existentes, em_uso, sus]]) => ({
@@ -104,26 +124,26 @@ function blocoEquipamentos(base, x, tpUnid) {
     }))
     .sort((a, b) => b.existentes - a.existentes || a.label.localeCompare(b.label));
   const total = somaEq(x.eq);
-  const lista = indices(base).porTipo[tpUnid]?.eq || [];
+  const lista = (grupo && indices(base).porGrupo[grupo.chave]?.eq) || [];
   return {
     total,
     em_uso: itens.reduce((s, i) => s + i.em_uso, 0),
     sus: itens.reduce((s, i) => s + i.sus, 0),
     tipos: itens.length,
     itens,
-    comparacao: tpUnid ? { tipo: tpUnid, estabelecimentos: lista.length, mediana: mediana(lista), percentil: percentil(lista, total) } : null,
+    comparacao: comparar(grupo, lista, total),
   };
 }
 
-function blocoProfissionais(base, x, tpUnid) {
+function blocoProfissionais(base, x, grupo) {
   const grupos = Object.entries(x.pf.g)
     .map(([codigo, n]) => ({ codigo, label: GRUPOS_PROFISSIONAIS[codigo]?.label || codigo, total: n }))
     .sort((a, b) => (a.codigo === "outros") - (b.codigo === "outros") || b.total - a.total);
-  const lista = indices(base).porTipo[tpUnid]?.pf || [];
+  const lista = (grupo && indices(base).porGrupo[grupo.chave]?.pf) || [];
   return {
     total: x.pf.t,
     grupos,
-    comparacao: tpUnid ? { tipo: tpUnid, estabelecimentos: lista.length, mediana: mediana(lista), percentil: percentil(lista, x.pf.t) } : null,
+    comparacao: comparar(grupo, lista, x.pf.t),
   };
 }
 
@@ -167,8 +187,9 @@ function montarAtual(base, cnes) {
           ambulatorio: cad.ambulatorio,
         }
       : null,
-    equipamentos: blocoEquipamentos(base, x, tpUnid),
-    profissionais: blocoProfissionais(base, x, tpUnid),
+    grupo_comparacao: grupoComparacao(cad, x)?.label || null,
+    equipamentos: blocoEquipamentos(base, x, grupoComparacao(cad, x)),
+    profissionais: blocoProfissionais(base, x, grupoComparacao(cad, x)),
     servicos: x.sr.map((codigo) => ({ codigo, label: rotServ[codigo] || `Serviço ${codigo}` })),
     habilitacoes: x.hb,
     cadastro: blocoCadastro(base, cad),
