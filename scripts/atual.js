@@ -54,6 +54,13 @@ function indices(base) {
   return base._indices;
 }
 
+/** O CNES repete nomes de especialidade em tipos diferentes (ex.: Cardiologia clínica e cirúrgica). */
+function desambiguar(itens, rotulosTipo) {
+  const vezes = {};
+  for (const i of itens) vezes[i.label] = (vezes[i.label] || 0) + 1;
+  return itens.map((i) => (vezes[i.label] > 1 ? { ...i, label: `${i.label} (${(rotulosTipo[i.tipo] || i.tipo).toLowerCase()})` } : i));
+}
+
 function blocoLeitos(base, cnes, cad) {
   const l = base.leitos.get(cnes);
   if (!l) return null;
@@ -70,10 +77,13 @@ function blocoLeitos(base, cnes, cad) {
     por_tipo: Object.entries(l.tipos)
       .map(([codigo, t]) => ({ codigo, label: r.leitos_tipo[codigo] || `Tipo ${codigo}`, total: t.e, sus: t.s }))
       .sort((a, b) => b.total - a.total),
-    por_especialidade: Object.entries(l.esp)
-      .map(([codigo, t]) => ({ codigo, label: r.leitos_especialidade[codigo] || `Especialidade ${codigo}`, tipo: t.tipo, total: t.e, sus: t.s }))
-      .filter((x) => x.total > 0)
-      .sort((a, b) => b.total - a.total),
+    por_especialidade: desambiguar(
+      Object.entries(l.esp)
+        .map(([codigo, t]) => ({ codigo, label: r.leitos_especialidade[codigo] || `Especialidade ${codigo}`, tipo: t.tipo, total: t.e, sus: t.s }))
+        .filter((x) => x.total > 0)
+        .sort((a, b) => b.total - a.total),
+      r.leitos_tipo
+    ),
     contexto: {
       municipio: { nome: base.municipios[cad.codufmun] || cad.codufmun, total: totalMunicipio, percentual: pct(l.total, totalMunicipio) },
       estado: { total: leitosEstado, percentual: pct(l.total, leitosEstado) },

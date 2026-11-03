@@ -138,3 +138,10 @@ test("painel do sindicato: lista com situação e totais, sem dados pessoais", (
   assert.equal(p.equipamentos_associados[0].label, "Ultrassom Doppler Colorido");
   assert.equal(p.equipamentos_associados[0].quantidade, 5);
 });
+
+test("especialidades com o mesmo nome em tipos diferentes ganham o tipo no rótulo", () => {
+  const b = baseFalsa();
+  b.extra.rotulos.leitos_especialidade = { 75: "Cardiologia", 33: "Cardiologia" };
+  const labels = montarAtual(b, "H1").leitos.por_especialidade.map((e) => e.label);
+  assert.deepEqual(labels.sort(), ["Cardiologia (clínico)", "Cardiologia (complementar)"]);
+});

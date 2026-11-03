@@ -107,7 +107,8 @@ function lerDicionarios() {
   const ler = (f) => fs.readFileSync(path.join(PASTA_BRUTOS, "tab", f));
   const limpar = (mapa) => Object.fromEntries(Object.entries(mapa).map(([k, v]) => [k, limparRotulo(v)]));
   return {
-    equipamentos: limpar({ ...lerCnv(ler("CNV/Equip_Tp.cnv")), ...lerCnv(ler("CNV/equipam2507.cnv")), ...lerCnv(ler("CNV/equipam2508.cnv")) }),
+    // Equip_Tp por último: é o dicionário com acentos (os outros dois só cobrem códigos que faltam nele).
+    equipamentos: limpar({ ...lerCnv(ler("CNV/equipam2507.cnv")), ...lerCnv(ler("CNV/equipam2508.cnv")), ...lerCnv(ler("CNV/Equip_Tp.cnv")) }),
     leitos_tipo: limpar(lerCnv(ler("CNV/tip1leit.cnv"))),
     leitos_especialidade: limpar(lerCnv(ler("CNV/Esp_leit.CNV"))),
     servicos: Object.fromEntries(lerDbf(ler("DBF/SRN_ORD_N.dbf")).registros.map((r) => [r.CHAVE, limparRotulo(r.DS_SERV)])),
