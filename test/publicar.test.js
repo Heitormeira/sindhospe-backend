@@ -93,3 +93,30 @@ test("sincronizarContas só troca senhas com resetarSenhas", async () => {
   const depois = await auth.getUserByEmail(emailDoAssociado("A"));
   assert.notEqual(depois.passwordHash, antes.passwordHash);
 });
+
+test("conta do sindicato: criada com perfil, sem cnes, e não é desativada pela sincronização dos associados", async () => {
+  const { sincronizarContaSindicato, EMAIL_SINDICATO } = require("../scripts/contas");
+  assert.equal(await sincronizarContaSindicato(auth, "senha-sindicato"), "criada");
+  const u = await auth.getUserByEmail(EMAIL_SINDICATO);
+  assert.deepEqual(u.customClaims, { perfil: "sindicato" });
+  assert.equal(await sincronizarContaSindicato(auth, "senha-sindicato"), "sem_mudanca");
+
+  const r = await sincronizarContas(auth, ["A"], "senha-demo");
+  assert.deepEqual(r, { criadas: 1, atualizadas: 0, desativadas: 0 });
+  assert.equal((await auth.getUserByEmail(EMAIL_SINDICATO)).disabled, false);
+
+  await auth.setCustomUserClaims(u.uid, { cnes: "X" });
+  assert.equal(await sincronizarContaSindicato(auth, "senha-sindicato"), "atualizada");
+  assert.deepEqual((await auth.getUserByEmail(EMAIL_SINDICATO)).customClaims, { perfil: "sindicato" });
+});
+
+test("gravarDocumentos gerencia a coleção sindicato", async () => {
+  const docs = base(20);
+  docs.set("sindicato/painel", { resumo: { associados: 20 } });
+  await gravarDocumentos(firestore, docs);
+  assert.equal((await firestore.doc("sindicato/painel").get()).data().resumo.associados, 20);
+  docs.delete("sindicato/painel");
+  docs.set("sindicato/velho", {});
+  await gravarDocumentos(firestore, docs);
+  assert.equal((await firestore.doc("sindicato/painel").get()).exists, false);
+});

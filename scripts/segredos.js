@@ -1,7 +1,7 @@
 /**
  * Lê os segredos do importador de uma pasta FORA do repositório
  * (padrão: ../segredos, ao lado das pastas dos dois repositórios).
- *   .env               -> DATABASE_URL e SENHA_DEMO
+ *   .env               -> DATABASE_URL, SENHA_DEMO e SENHA_SINDICATO (opcional, conta do SINDHOSPE)
  *   firebase-admin.json -> chave da conta de serviço do Firebase
  * As mensagens de erro nunca incluem o valor dos segredos.
  */
@@ -38,7 +38,11 @@ function carregarSegredos(dir = process.env.SEGREDOS_DIR || PASTA_PADRAO, { exig
     throw new Error(`Chave da conta de serviço não encontrada: ${credencialPath} (firebase-admin.json)`);
   }
 
-  return { databaseUrl: env.DATABASE_URL, senhaDemo: env.SENHA_DEMO, credencialPath };
+  if (env.SENHA_SINDICATO !== undefined && env.SENHA_SINDICATO.length < 8) {
+    throw new Error(`SENHA_SINDICATO precisa ter pelo menos 8 caracteres em ${arquivoEnv}`);
+  }
+
+  return { databaseUrl: env.DATABASE_URL, senhaDemo: env.SENHA_DEMO, senhaSindicato: env.SENHA_SINDICATO, credencialPath };
 }
 
 module.exports = { carregarSegredos };

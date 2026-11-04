@@ -13,11 +13,13 @@ Segredos ficam **fora** do repositório, na pasta `../segredos/` (ou na pasta in
 
 | Arquivo | Conteúdo |
 |---|---|
-| `.env` | `DATABASE_URL=...` (Neon) e `SENHA_DEMO=...` (6+ caracteres, senha inicial das contas) |
+| `.env` | `DATABASE_URL=...` (Neon), `SENHA_DEMO=...` (6+ caracteres, senha inicial das contas) e `SENHA_SINDICATO=...` (8+ caracteres, conta `sindicato@sindhospe.app` do Painel SINDHOSPE; opcional) |
 | `firebase-admin.json` | chave da conta de serviço (Firebase → Configurações → Contas de serviço) |
 
 ```bash
 npm install
+npm run baixar-cnes -- 202606   # baixa do DATASUS equipamentos, profissionais, serviços e habilitações de PE
+                                 # e grava dados/cnes-202606.json (só contagens; usar a competência do Neon)
 npm run importar:seco    # calcula tudo e grava em ./saida, sem tocar no Firebase
 npm run paridade         # compara ./saida com a API Express rodando localmente (critério: 0 divergências)
 npm run importar         # publica no Firestore e cria/atualiza as contas (rodar a cada competência do CNES)
@@ -25,6 +27,23 @@ npm run deploy:regras    # publica firestore.rules
 npm test                 # testes unitários
 npm run test:regras      # regras + importador no emulador (precisa de Java 21 no PATH)
 ```
+
+### O que é publicado
+
+| Documento | Conteúdo | Quem lê |
+|---|---|---|
+| `associados/{cnes}` | Ficha no formato da API antiga + bloco `atual`: leitos (arquivo LT), equipamentos, profissionais, serviços, habilitações, situação do cadastro e licença sanitária, tudo da competência mais recente, com a categoria do estabelecimento e a comparação com o mesmo grupo | o próprio associado e o sindicato |
+| `publico/setores` | Estado × associados por setor (hospital, clínica, diagnóstico...) | qualquer conta |
+| `sindicato/painel` | Totais dos associados, setores, evolução dos leitos, equipamentos e lista com situação do cadastro | só `perfil: "sindicato"` |
+| `mercado/*`, `publico/*` | Igual à API antiga | qualquer conta |
+
+Regras de negócio (reunião com o SINDHOSPE de 28/10/2026, design em `docs/superpowers/specs/2026-10-31-melhorias-reuniao-design.md`):
+- leitos sempre da mesma competência e da mesma fonte em todos os blocos; totais e participação em vez de médias;
+- leitos só para hospital (ou quem tem leito cadastrado);
+- comparação por mediana entre estabelecimentos do mesmo grupo (hospitais pelo tipo de unidade; demais pela categoria + serviço principal: diálise, imagem, patologia, laboratório...), só com quem tem o item cadastrado;
+- LGPD: do arquivo de profissionais só saem contagens por ocupação.
+
+Documentos do projeto com o SINDHOSPE: `docs/projeto/` (plano de trabalho, amostra do estudo, pesquisa de fontes).
 
 - O importador conecta ao Neon **somente leitura** e é idempotente: pode rodar de novo sem duplicar nada.
 - Ele aborta sem alterar nada se a importação trouxer menos de 90% dos associados atuais. Se a redução for real, use `npm run importar -- --forcar`.

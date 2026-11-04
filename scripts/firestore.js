@@ -6,7 +6,7 @@
  * - grava em lotes de no máximo 400 operações;
  * - apaga documentos de coleções gerenciadas que não vieram nesta importação.
  */
-const COLECOES_GERENCIADAS = ["associados", "busca", "mercado", "publico"];
+const COLECOES_GERENCIADAS = ["associados", "busca", "mercado", "publico", "sindicato"];
 const TAMANHO_LOTE = 400;
 const MINIMO_RELATIVO = 0.9; // a nova importação precisa ter >= 90% dos associados atuais
 

@@ -53,3 +53,12 @@ test("erro cita firebase-admin.json quando a chave falta", () => {
   const dir = pastaCom({ env: `DATABASE_URL=${URL_FALSA}\nSENHA_DEMO=abcdef\n`, credencial: false });
   assert.throws(() => carregarSegredos(dir), (e) => /firebase-admin\.json/.test(e.message) && !e.message.includes("segredo123"));
 });
+
+test("SENHA_SINDICATO é opcional, mas se vier precisa de 8+ caracteres", () => {
+  const sem = pastaCom({ env: `DATABASE_URL=${URL_FALSA}\nSENHA_DEMO=abcdef\n` });
+  assert.equal(carregarSegredos(sem).senhaSindicato, undefined);
+  const ok = pastaCom({ env: `DATABASE_URL=${URL_FALSA}\nSENHA_DEMO=abcdef\nSENHA_SINDICATO=abcdefgh\n` });
+  assert.equal(carregarSegredos(ok).senhaSindicato, "abcdefgh");
+  const curta = pastaCom({ env: `DATABASE_URL=${URL_FALSA}\nSENHA_DEMO=abcdef\nSENHA_SINDICATO=abc\n` });
+  assert.throws(() => carregarSegredos(curta), (e) => /SENHA_SINDICATO/.test(e.message) && !e.message.includes("abc\n"));
+});

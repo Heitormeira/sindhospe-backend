@@ -3,9 +3,9 @@ const { initializeApp, cert } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getAuth } = require("firebase-admin/auth");
 const { gravarDocumentos } = require("./firestore");
-const { sincronizarContas } = require("./contas");
+const { sincronizarContas, sincronizarContaSindicato } = require("./contas");
 
-async function publicar(docs, { credencialPath, senhaDemo }, { forcar = false, resetarSenhas = false } = {}) {
+async function publicar(docs, { credencialPath, senhaDemo, senhaSindicato }, { forcar = false, resetarSenhas = false } = {}) {
   const app = initializeApp({ credential: cert(credencialPath), projectId: "sindhospe-portal" });
   const firestore = getFirestore(app);
   const auth = getAuth(app);
@@ -18,6 +18,13 @@ async function publicar(docs, { credencialPath, senhaDemo }, { forcar = false, r
   console.log("Sincronizando contas do Firebase Auth...");
   const contas = await sincronizarContas(auth, cnesLista, senhaDemo, { resetarSenhas });
   console.log(`  criadas: ${contas.criadas}, atualizadas: ${contas.atualizadas}, desativadas: ${contas.desativadas}`);
+
+  if (senhaSindicato) {
+    const r = await sincronizarContaSindicato(auth, senhaSindicato, { resetarSenha: resetarSenhas });
+    console.log(`  conta do sindicato: ${r}`);
+  } else {
+    console.log("  conta do sindicato: SENHA_SINDICATO ausente em segredos/.env, conta não sincronizada");
+  }
 }
 
 module.exports = { publicar };
