@@ -1,11 +1,16 @@
 /**
  * Uma conta do Firebase Auth por associado:
- *   e-mail {cnes}@sindhospe.app, senha SENHA_DEMO (só na criação), custom claim { cnes }.
- * Idempotente e conservador: conta que já está certa não é tocada — trocar a senha
- * revogaria as sessões abertas. Para redefinir todas as senhas: { resetarSenhas: true }
- * (npm run importar -- --resetar-senhas).
- * Contas de associados que saíram são DESATIVADAS (não apagadas) e têm as sessões revogadas.
+ *   e-mail {cnes}@sindhospe.app, senha INDIVIDUAL aleatória (gerada na criação), custom claim { cnes }.
+ * - Contas novas recebem senha própria; a lista {cnes, senha} volta para quem chamou,
+ *   que grava o CSV em segredos/senhas/ para o SINDHOSPE distribuir.
+ * - Idempotente e conservador: conta que já está certa não é tocada — trocar a senha
+ *   revogaria as sessões abertas e anularia a senha que o associado escolheu.
+ * - redefinirSenhas(): troca a senha só das contas pedidas ("esqueci minha senha"),
+ *   e derruba as sessões abertas dessas contas.
+ * - Contas de associados que saíram são DESATIVADAS (não apagadas) e têm as sessões revogadas.
  */
+const { gerarSenha: gerarSenhaPadrao } = require("./senhas");
+
 const DOMINIO = "sindhospe.app";
 const emailDoAssociado = (cnes) => `${cnes}@${DOMINIO}`.toLowerCase();
 const EMAIL_SINDICATO = `sindicato@${DOMINIO}`;
@@ -21,9 +26,10 @@ async function listarContasDoPortal(auth) {
   return contas;
 }
 
-async function sincronizarContas(auth, cnesLista, senhaDemo, { resetarSenhas = false } = {}) {
+async function sincronizarContas(auth, cnesLista, { gerarSenha = gerarSenhaPadrao } = {}) {
   const existentes = new Map((await listarContasDoPortal(auth)).map((u) => [u.email.toLowerCase(), u]));
   let criadas = 0, atualizadas = 0, desativadas = 0;
+  const novasSenhas = [];
 
   for (const cnes of cnesLista) {
     const email = emailDoAssociado(cnes);
@@ -31,20 +37,18 @@ async function sincronizarContas(auth, cnesLista, senhaDemo, { resetarSenhas = f
     existentes.delete(email);
 
     if (!atual) {
-      const { uid } = await auth.createUser({ email, password: senhaDemo, emailVerified: true });
+      const senha = gerarSenha();
+      const { uid } = await auth.createUser({ email, password: senha, emailVerified: true });
       await auth.setCustomUserClaims(uid, { cnes });
+      novasSenhas.push({ cnes, senha });
       criadas++;
       continue;
     }
 
-    const mudancas = {};
-    if (atual.disabled) mudancas.disabled = false;
-    if (resetarSenhas) mudancas.password = senhaDemo;
     const claimCerta = atual.customClaims?.cnes === cnes;
-
-    if (Object.keys(mudancas).length) await auth.updateUser(atual.uid, mudancas);
+    if (atual.disabled) await auth.updateUser(atual.uid, { disabled: false });
     if (!claimCerta) await auth.setCustomUserClaims(atual.uid, { cnes });
-    if (Object.keys(mudancas).length || !claimCerta) atualizadas++;
+    if (atual.disabled || !claimCerta) atualizadas++;
   }
 
   for (const sobra of existentes.values()) {
@@ -54,7 +58,28 @@ async function sincronizarContas(auth, cnesLista, senhaDemo, { resetarSenhas = f
       desativadas++;
     }
   }
-  return { criadas, atualizadas, desativadas };
+  return { criadas, atualizadas, desativadas, novasSenhas };
+}
+
+/** Nova senha aleatória para cada CNES pedido; sessões abertas dessas contas caem. */
+async function redefinirSenhas(auth, cnesLista, { gerarSenha = gerarSenhaPadrao } = {}) {
+  const redefinidas = [];
+  const semConta = [];
+  for (const cnes of cnesLista) {
+    let conta;
+    try {
+      conta = await auth.getUserByEmail(emailDoAssociado(cnes));
+    } catch (e) {
+      if (e.code !== "auth/user-not-found") throw e;
+      semConta.push(cnes);
+      continue;
+    }
+    const senha = gerarSenha();
+    await auth.updateUser(conta.uid, { password: senha });
+    await auth.revokeRefreshTokens(conta.uid);
+    redefinidas.push({ cnes, senha });
+  }
+  return { redefinidas, semConta };
 }
 
 /**
@@ -81,4 +106,4 @@ async function sincronizarContaSindicato(auth, senha, { resetarSenha = false } =
   return Object.keys(mudancas).length || !claimCerta ? "atualizada" : "sem_mudanca";
 }
 
-module.exports = { sincronizarContas, sincronizarContaSindicato, emailDoAssociado, EMAIL_SINDICATO };
+module.exports = { sincronizarContas, redefinirSenhas, sincronizarContaSindicato, emailDoAssociado, EMAIL_SINDICATO };
