@@ -96,7 +96,21 @@ function montarTipos(h) {
 const soDigitos = (x) => String(x || "").replace(/\D/g, "");
 const formatarCnpj = (c) => c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 const formatarCep = (c) => (/^\d{8}$/.test(c || "") ? `${c.slice(0, 5)}-${c.slice(5)}` : c || null);
-const titulo = (t) => (t && t === t.toUpperCase() ? t.toLowerCase().replace(/(^|\s)\S/g, (s) => s.toUpperCase()) : t);
+// Textos da Receita vêm em maiúsculas: "RUA ANTONIO GOMES DE FREITAS" -> "Rua Antonio Gomes de Freitas".
+const CONECTIVOS = new Set(["de", "da", "do", "das", "dos", "e"]);
+function titulo(t) {
+  const limpo = String(t || "").replace(/\s+/g, " ").trim();
+  if (!limpo) return null;
+  if (limpo !== limpo.toUpperCase()) return limpo;
+  return limpo
+    .toLowerCase()
+    .split(" ")
+    .map((p, i) => (i > 0 && CONECTIVOS.has(p) ? p : p.charAt(0).toUpperCase() + p.slice(1)))
+    .join(" ");
+}
+// Complemento às vezes vem com marcadores vazios (": ENTR.; : SUPL.;"): fica só o texto.
+const limparComplemento = (t) =>
+  titulo(String(t || "").replace(/(^|;)\s*:\s*/g, "$1 ").replace(/\s*;\s*/g, "; ").replace(/^[;\s]+|[;\s]+$/g, ""));
 
 /**
  * Bloco `receita` da ficha: dados abertos do CNPJ (Receita Federal) do estabelecimento.
@@ -125,7 +139,7 @@ function montarReceita(receita, cnes, identidade) {
     endereco: e
       ? {
           logradouro: [titulo(e.logradouro), e.numero && e.numero !== "SN" ? e.numero : "s/n"].filter(Boolean).join(", "),
-          complemento: titulo(e.complemento),
+          complemento: limparComplemento(e.complemento),
           bairro: titulo(e.bairro),
           cep: formatarCep(e.cep),
           municipio: titulo(e.municipio),
