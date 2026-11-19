@@ -5,7 +5,7 @@
 const { gerarPrefixos } = require("./prefixos");
 const { montarBase } = require("./fontes");
 const { montarAtual, montarSetores, montarPainelSindicato } = require("./atual");
-const { montarFicha, montarMercado, montarTipos } = require("./publicos");
+const { montarFicha, montarMercado, montarTipos, montarReceita } = require("./publicos");
 
 // Converte para JSON puro (remove undefined), como res.json() fazia na API antiga.
 const json = (x) => JSON.parse(JSON.stringify(x));
@@ -31,7 +31,14 @@ function montarDocumentos(fontes, { log = console.log } = {}) {
   for (const [cnes, identidade] of porCnes) {
     const cad = base.cadastros.get(cnes);
     if (!cad) foraDoCnes++;
-    docs.set(`associados/${cnes}`, json({ ...montarFicha(identidade, cad, base.municipios, cnes, fontes.naturezas), atual: montarAtual(base, cnes) }));
+    docs.set(
+      `associados/${cnes}`,
+      json({
+        ...montarFicha(identidade, cad, base.municipios, cnes, fontes.naturezas),
+        receita: montarReceita(fontes.receita, cnes, identidade),
+        atual: montarAtual(base, cnes),
+      })
+    );
     docs.set(`busca/${cnes}`, { nome_fantasia: identidade.nome_fantasia, prefixos: gerarPrefixos(identidade.nome_fantasia) });
   }
 
@@ -43,6 +50,10 @@ function montarDocumentos(fontes, { log = console.log } = {}) {
   const lt = Object.values(fontes.atual.lt).reduce((s, x) => s + x.length, 0);
   log(`Lido: ${st} estabelecimentos no ST e ${lt} linhas no LT de ${base.competencia}; ${lidos} linhas na lista de associados.`);
   log(`Associados: ${porCnes.size} com documento (${foraDoCnes} fora do CNES de ${base.competencia}).`);
+  if (fontes.receita) {
+    const comReceita = [...porCnes.keys()].filter((c) => docs.get(`associados/${c}`).receita).length;
+    log(`Receita Federal (${fontes.receita.referencia}): ${comReceita} de ${porCnes.size} associados com dados do CNPJ.`);
+  }
   return docs;
 }
 

@@ -4,6 +4,7 @@
  *   dados/historico/AAAAMM.json   cadastro (ST) e leitos (LT) de cada competência (npm run baixar-cnes -- ... --historico)
  *   dados/municipios-pe.json      nomes oficiais dos municípios (IBGE)
  *   dados/natureza-juridica.json  nomes das naturezas jurídicas (dicionário NATJUR do DATASUS)
+ *   dados/receita/AAAA-MM.json    dados abertos do CNPJ (npm run baixar-cnpj; opcional, usa o mais recente)
  *   segredos/associados.json      lista de associados do SINDHOSPE (fora do repositório; npm run exportar-associados)
  *
  * carregarFontes() lê os arquivos; montarBase() devolve a mesma estrutura que
@@ -68,8 +69,11 @@ function carregarFontes({ pastaDados, associadosPath, competencia, desde }) {
   const { municipios } = lerJson(path.join(pastaDados, "municipios-pe.json"));
   const arquivoNaturezas = path.join(pastaDados, "natureza-juridica.json");
   const naturezas = fs.existsSync(arquivoNaturezas) ? lerJson(arquivoNaturezas).naturezas : {};
+  const pastaReceita = path.join(pastaDados, "receita");
+  const arquivosReceita = fs.existsSync(pastaReceita) ? fs.readdirSync(pastaReceita).filter((f) => /^\d{4}-\d{2}\.json$/.test(f)).sort() : [];
+  const receita = arquivosReceita.length ? lerJson(path.join(pastaReceita, arquivosReceita.at(-1))) : null;
   const associados = lerAssociados(associadosPath);
-  return { competencia: comp, historicos, atual: historicos.at(-1), extra, municipios, naturezas, associados };
+  return { competencia: comp, historicos, atual: historicos.at(-1), extra, municipios, naturezas, receita, associados };
 }
 
 /** Cadastro (ST) da competência atual por CNES, no formato que atual.js usa. */

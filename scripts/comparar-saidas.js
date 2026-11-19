@@ -23,7 +23,7 @@ const DOCS_REMOVIDOS = ["publico/visao-geral", "publico/representatividade"];
 const DOCS_QUE_MUDAM = ["publico/tipos", "publico/meta"];
 // Campos que mudam de propósito: saem das duas saídas antes de comparar (o resto tem de bater).
 const CAMPOS_QUE_MUDAM = {
-  associados: ["atual.leitos.contexto", "atual.atendimento", "atual.estrutura.hospitalar"],
+  associados: ["atual.leitos.contexto", "atual.atendimento", "atual.estrutura.hospitalar", "receita"],
   "publico/setores": ["categorias[].estado"],
   "sindicato/painel": ["setores[].estado"],
 };
