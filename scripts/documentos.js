@@ -1,70 +1,48 @@
 /**
- * Monta todos os documentos do Firestore a partir do Neon.
- * Cada documento guarda exatamente o JSON que a rota equivalente da API devolvia
- * (ver docs/superpowers/specs/2026-10-26-migracao-firebase-design.md §4).
+ * Monta todos os documentos do Firestore a partir dos arquivos do DATASUS e da lista
+ * de associados (scripts/fontes.js). Não usa banco de dados.
  */
-const c = require("./consultas");
 const { gerarPrefixos } = require("./prefixos");
-const { carregarBaseAtual } = require("./consultas-atual");
+const { montarBase } = require("./fontes");
 const { montarAtual, montarSetores, montarPainelSindicato } = require("./atual");
+const { montarFicha, montarMercado, montarTipos } = require("./publicos");
 
-// Converte para JSON puro (Date -> string, remove undefined), como res.json() fazia.
+// Converte para JSON puro (remove undefined), como res.json() fazia na API antiga.
 const json = (x) => JSON.parse(JSON.stringify(x));
 
-/** Executa fn em cada item com no máximo `limite` chamadas simultâneas. */
-async function emParalelo(itens, limite, fn) {
-  let proximo = 0;
-  const trabalhador = async () => {
-    while (proximo < itens.length) {
-      const i = proximo++;
-      await fn(itens[i], i);
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(limite, itens.length) }, trabalhador));
-}
-
-async function montarDocumentos(db, { log = console.log, extra } = {}) {
+function montarDocumentos(fontes, { log = console.log } = {}) {
   const docs = new Map();
+  const base = montarBase(fontes);
+  log(`Competência: ${base.competencia} (série histórica: ${fontes.historicos.map((h) => h.competencia).join(", ")})`);
 
   // Bloco atual (reunião de 28/10): uma competência só, por categoria de estabelecimento.
-  const base = await carregarBaseAtual(db, extra);
-  log(`Competência atual do CNES: ${base.competencia}`);
   docs.set("publico/setores", json(montarSetores(base)));
   docs.set("sindicato/painel", json(montarPainelSindicato(base)));
 
   // Públicos
-  docs.set("publico/visao-geral", json(await c.getVisaoGeral(db)));
-  docs.set("publico/representatividade", json(await c.getRepresentatividade(db)));
-  docs.set("publico/municipios", { lista: json(await c.getMunicipios(db)) });
-  docs.set("publico/tipos", { lista: json(await c.getTipos(db)) });
-  docs.set("publico/meta", {
-    competencia_max: await c.getCompetenciaMax(db),
-    importado_em: new Date().toISOString(),
-  });
+  docs.set("publico/municipios", { lista: fontes.municipios });
+  docs.set("publico/tipos", { lista: montarTipos(fontes.atual) });
+  docs.set("publico/meta", { competencia_max: base.competencia, importado_em: new Date().toISOString() });
 
   // Associados + índice de busca
-  const associados = await c.listarAssociados(db);
-  const semCnes = await c.contarAssociadosSemCnes(db);
-  if (semCnes > 0) log(`Aviso: ${semCnes} linha(s) de identidade_associados sem CNES foram ignoradas.`);
-  await emParalelo(associados, 4, async ({ cnes, nome_fantasia }, i) => {
-    const ficha = await c.getEstabelecimento(db, cnes);
-    const evolucao = await c.getEvolucao(db, cnes);
-    docs.set(`associados/${cnes}`, json({ ...ficha, evolucao, atual: montarAtual(base, cnes) }));
-    docs.set(`busca/${cnes}`, { nome_fantasia, prefixos: gerarPrefixos(nome_fantasia) });
-    if ((i + 1) % 50 === 0) log(`  associados: ${i + 1}/${associados.length}`);
-  });
+  const { porCnes, lidos, semCnes } = fontes.associados;
+  if (semCnes > 0) log(`Aviso: ${semCnes} associado(s) sem CNES na lista foram ignorados.`);
+  let foraDoCnes = 0;
+  for (const [cnes, identidade] of porCnes) {
+    const cad = base.cadastros.get(cnes);
+    if (!cad) foraDoCnes++;
+    docs.set(`associados/${cnes}`, json({ ...montarFicha(identidade, cad, base.municipios, cnes), atual: montarAtual(base, cnes) }));
+    docs.set(`busca/${cnes}`, { nome_fantasia: identidade.nome_fantasia, prefixos: gerarPrefixos(identidade.nome_fantasia) });
+  }
 
   // Mercado: por tipo no estado inteiro e por tipo × município
-  const tipos = await c.listarTiposMercado(db);
-  await emParalelo(tipos, 4, async (tipo) => {
-    docs.set(`mercado/${tipo}_PE`, { serie: json(await c.getMercado(db, tipo)) });
-  });
-  const combos = await c.listarCombosMercado(db);
-  await emParalelo(combos, 4, async ({ tipo, codufmun }, i) => {
-    docs.set(`mercado/${tipo}_${codufmun}`, { serie: json(await c.getMercado(db, tipo, codufmun)) });
-    if ((i + 1) % 500 === 0) log(`  mercado: ${i + 1}/${combos.length}`);
-  });
+  for (const [chave, serie] of montarMercado(fontes.historicos)) docs.set(`mercado/${chave}`, { serie });
 
+  // Paridade: o que foi lido × o que vai ser gravado
+  const st = Object.keys(fontes.atual.st).length + (fontes.atual.st_repetidos || []).length;
+  const lt = Object.values(fontes.atual.lt).reduce((s, x) => s + x.length, 0);
+  log(`Lido: ${st} estabelecimentos no ST e ${lt} linhas no LT de ${base.competencia}; ${lidos} linhas na lista de associados.`);
+  log(`Associados: ${porCnes.size} com documento (${foraDoCnes} fora do CNES de ${base.competencia}).`);
   return docs;
 }
 
@@ -77,4 +55,4 @@ function contarPorColecao(docs) {
   return contagem;
 }
 
-module.exports = { montarDocumentos, contarPorColecao, emParalelo };
+module.exports = { montarDocumentos, contarPorColecao };

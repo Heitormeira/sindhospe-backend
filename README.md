@@ -5,37 +5,62 @@ API do **Portal SINDHOSPE**, desenvolvida no Projeto Integrador (UNICAP + SINDHO
 - **API em produção:** https://sindhospe-backend.onrender.com
 - **Frontend:** repositório `sindhospe-frontend` (Next.js, hospedado na Vercel)
 
-> **Migração para o Firebase (em andamento).** O portal está passando a ler os dados do **Firestore** e a usar o **Firebase Auth**, com uma conta por associado. Este repositório passa a guardar o **importador** que calcula os indicadores no Neon e os publica no Firebase. A API Express (`server.js`) continua no ar até o frontend novo ser validado em produção. Design e plano: `docs/superpowers/specs/` e `docs/superpowers/plans/`.
+> **Migração para o Firebase (em andamento).** O portal está passando a ler os dados do **Firestore** e a usar o **Firebase Auth**, com uma conta por associado. Este repositório guarda o **importador**, que calcula os indicadores a partir dos arquivos públicos do DATASUS e da lista de associados e os publica no Firebase (o Neon não é mais usado pelo importador). A API Express (`server.js`) continua no ar até o frontend novo ser validado em produção. Design e plano: `docs/superpowers/specs/` e `docs/superpowers/plans/`.
 
 ## Importador para o Firebase
+
+De onde vêm os dados:
+
+| Fonte | Onde fica | Como atualizar |
+|---|---|---|
+| Cadastro (ST) e leitos (LT) do CNES, por trimestre | `dados/historico/AAAAMM.json` (público, versionado) | `npm run baixar-cnes -- AAAAMM --historico 202003` |
+| Equipamentos, profissionais, serviços e habilitações | `dados/cnes-AAAAMM.json` (público, versionado) | o mesmo comando |
+| Nomes dos municípios | `dados/municipios-pe.json` (IBGE) | não muda |
+| Lista de associados do SINDHOSPE | `../segredos/associados.json` (**fora** do repositório) | `npm run exportar-associados` (uma vez, do Neon) ou editar o arquivo |
 
 Segredos ficam **fora** do repositório, na pasta `../segredos/` (ou na pasta indicada em `SEGREDOS_DIR`):
 
 | Arquivo | Conteúdo |
 |---|---|
-| `.env` | `DATABASE_URL=...` (Neon), `SENHA_SINDICATO=...` (8+ caracteres, conta `sindicato@sindhospe.app` do Painel SINDHOSPE; opcional) |
-| `firebase-admin.json` | chave da conta de serviço (Firebase → Configurações → Contas de serviço) |
+| `associados.json` | lista de associados (CNES, nome, CNPJ, registro, situação) |
+| `.env` | `SENHA_SINDICATO=...` (8+ caracteres, conta `sindicato@sindhospe.app` do Painel SINDHOSPE; opcional) e `DATABASE_URL=...` (só para `exportar-associados`) |
+| `firebase-admin.json` | chave da conta de serviço (Firebase → Configurações → Contas de serviço); o modo seco não precisa |
 
 ```bash
 npm install
-npm run baixar-cnes -- 202606   # baixa do DATASUS equipamentos, profissionais, serviços e habilitações de PE
-                                 # e grava dados/cnes-202606.json (só contagens; usar a competência do Neon)
+npm run baixar-cnes -- 202609 --historico 202003
+                         # baixa do DATASUS o ST e o LT de cada trimestre desde 03/2020 (só os que faltam)
+                         # e EQ, PF, SR e HB de 09/2026; grava só contagens em dados/
 npm run importar:seco    # calcula tudo e grava em ./saida, sem tocar no Firebase
-npm run paridade         # compara ./saida com a API Express rodando localmente (critério: 0 divergências)
-npm run importar         # publica no Firestore e cria/atualiza as contas (rodar a cada competência do CNES)
+npm run importar         # publica no Firestore e cria/atualiza as contas (rodar a cada trimestre do CNES)
 npm run deploy:regras    # publica firestore.rules
 npm test                 # testes unitários
 npm run test:regras      # regras + importador no emulador (precisa de Java 21 no PATH)
+```
+
+Opções do importador: `--competencia AAAAMM` (usar uma competência que não é a mais recente), `--historico-desde AAAAMM` (série histórica a partir dessa competência; padrão: tudo o que está em `dados/historico`, hoje desde 03/2020) e, no modo seco, `--saida PASTA`.
+
+**Conferência da troca do Neon pelos arquivos (uma vez):** gerar as duas saídas na mesma competência e comparar.
+
+```bash
+git checkout 14cf112                # última versão que ainda lê o Neon
+npm run importar:seco              # importador antigo (Neon), grava em ./saida
+mv saida saida-neon
+git checkout main                  # (ou sem-neon, se o PR ainda não foi juntado)
+npm run exportar-associados        # grava ../segredos/associados.json (somente leitura no Neon)
+npm run importar:seco -- --competencia 202606 --historico-desde 202406   # mesmos trimestres que o Neon tinha
+npm run comparar -- saida-neon saida     # critério: "nenhuma diferença inesperada"
 ```
 
 ### O que é publicado
 
 | Documento | Conteúdo | Quem lê |
 |---|---|---|
-| `associados/{cnes}` | Ficha no formato da API antiga + bloco `atual`: leitos (arquivo LT), equipamentos, profissionais, serviços, habilitações, situação do cadastro e licença sanitária, tudo da competência mais recente, com a categoria do estabelecimento e a comparação com o mesmo grupo | o próprio associado e o sindicato |
+| `associados/{cnes}` | Identidade (lista do SINDHOSPE), estrutura do cadastro do CNES e bloco `atual`: leitos (arquivo LT), equipamentos, profissionais, serviços, habilitações, situação do cadastro e licença sanitária, tudo da competência mais recente, com a categoria do estabelecimento e a comparação com o mesmo grupo | o próprio associado e o sindicato |
 | `publico/setores` | Estado × associados por setor (hospital, clínica, diagnóstico...) | qualquer conta |
 | `sindicato/painel` | Totais dos associados, setores, evolução dos leitos, equipamentos e lista com situação do cadastro | só `perfil: "sindicato"` |
-| `mercado/*`, `publico/*` | Igual à API antiga | qualquer conta |
+| `mercado/*` | Série por tipo de unidade (estado e município), mesma conta da API antiga | qualquer conta |
+| `publico/tipos`, `publico/municipios`, `publico/meta` | Listas dos filtros e competência dos dados | qualquer conta |
 
 Regras de negócio (reunião com o SINDHOSPE de 28/10/2026, design em `docs/superpowers/specs/2026-10-31-melhorias-reuniao-design.md`):
 - leitos sempre da mesma competência e da mesma fonte em todos os blocos; totais e participação em vez de médias;
@@ -45,7 +70,7 @@ Regras de negócio (reunião com o SINDHOSPE de 28/10/2026, design em `docs/supe
 
 Documentos do projeto com o SINDHOSPE: `docs/projeto/` (plano de trabalho, amostra do estudo, pesquisa de fontes).
 
-- O importador conecta ao Neon **somente leitura** e é idempotente: pode rodar de novo sem duplicar nada.
+- O importador não usa banco de dados: lê os arquivos de `dados/` e a lista de associados. É idempotente: pode rodar de novo sem duplicar nada.
 - Ele aborta sem alterar nada se a importação trouxer menos de 90% dos associados atuais. Se a redução for real, use `npm run importar -- --forcar`.
 - **Senha individual:** cada conta nova recebe uma senha aleatória própria (10 caracteres, sem 0/O/1/l/I). As senhas vão para `../segredos/senhas/senhas-<data>-<motivo>.csv` (fora do repositório; abre no Excel) e **nunca** aparecem no terminal.
 - Contas que já existem não têm a senha trocada, para não derrubar quem está logado nem apagar a senha que o associado escolheu.

@@ -4,7 +4,7 @@
  *  - leitos só do arquivo LT, com totais e participação no município/estado (sem médias);
  *  - conteúdo por categoria (hospital -> leitos; clínica/SADT -> equipamentos, profissionais, serviços);
  *  - cadastro: última atualização no CNES e licença sanitária informada.
- * Funções puras: recebem a base carregada por consultas-atual.js.
+ * Funções puras: recebem a base montada por fontes.js (arquivos do DATASUS).
  */
 const { CATEGORIAS, categoriaDoTipo, GRUPOS_PROFISSIONAIS, mediana, percentil, perfilDeServico } = require("./categorias");
 

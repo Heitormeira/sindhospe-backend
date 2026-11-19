@@ -40,6 +40,18 @@ test("lerDbf lê campos e registros, com acentos (latin1) e sem espaços", () =>
   assert.deepEqual(registros, REGS);
 });
 
+test("lerDbf funciona sem o terminador 0x0D da lista de campos (caso do ST do DATASUS)", () => {
+  const dbf = dbfFalso(CAMPOS, REGS);
+  dbf[dbf.readUInt16LE(8) - 1] = 0x00;
+  assert.deepEqual(lerDbf(dbf).registros, REGS);
+});
+
+test("lerDbf com `apenas` lê só os campos pedidos", () => {
+  const { campos, registros } = lerDbf(dbfFalso(CAMPOS, REGS), { apenas: ["NOME"] });
+  assert.deepEqual(campos, ["CNES", "NOME"]);
+  assert.deepEqual(registros, [{ NOME: "Esperança" }, { NOME: "Clínica" }]);
+});
+
 test("dbcParaDbf descomprime o corpo e preserva o cabeçalho", () => {
   const dbf = dbfFalso(CAMPOS, REGS);
   const tamCab = dbf.readUInt16LE(8);
