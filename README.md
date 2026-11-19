@@ -13,7 +13,7 @@ De onde vêm os dados:
 
 | Fonte | Onde fica | Como atualizar |
 |---|---|---|
-| Cadastro (ST) e leitos (LT) do CNES, por trimestre | `dados/historico/AAAAMM.json` (público, versionado) | `npm run baixar-cnes -- AAAAMM --historico 202406` |
+| Cadastro (ST) e leitos (LT) do CNES, por trimestre | `dados/historico/AAAAMM.json` (público, versionado) | `npm run baixar-cnes -- AAAAMM --historico 202003` |
 | Equipamentos, profissionais, serviços e habilitações | `dados/cnes-AAAAMM.json` (público, versionado) | o mesmo comando |
 | Nomes dos municípios | `dados/municipios-pe.json` (IBGE) | não muda |
 | Lista de associados do SINDHOSPE | `../segredos/associados.json` (**fora** do repositório) | `npm run exportar-associados` (uma vez, do Neon) ou editar o arquivo |
@@ -28,8 +28,8 @@ Segredos ficam **fora** do repositório, na pasta `../segredos/` (ou na pasta in
 
 ```bash
 npm install
-npm run baixar-cnes -- 202609 --historico 202406
-                         # baixa do DATASUS o ST e o LT de cada trimestre desde 06/2024 (só os que faltam)
+npm run baixar-cnes -- 202609 --historico 202003
+                         # baixa do DATASUS o ST e o LT de cada trimestre desde 03/2020 (só os que faltam)
                          # e EQ, PF, SR e HB de 09/2026; grava só contagens em dados/
 npm run importar:seco    # calcula tudo e grava em ./saida, sem tocar no Firebase
 npm run importar         # publica no Firestore e cria/atualiza as contas (rodar a cada trimestre do CNES)
@@ -38,7 +38,7 @@ npm test                 # testes unitários
 npm run test:regras      # regras + importador no emulador (precisa de Java 21 no PATH)
 ```
 
-Opções do importador: `--competencia AAAAMM` (usar uma competência que não é a mais recente) e, no modo seco, `--saida PASTA`.
+Opções do importador: `--competencia AAAAMM` (usar uma competência que não é a mais recente), `--historico-desde AAAAMM` (série histórica a partir dessa competência; padrão: tudo o que está em `dados/historico`, hoje desde 03/2020) e, no modo seco, `--saida PASTA`.
 
 **Conferência da troca do Neon pelos arquivos (uma vez):** gerar as duas saídas na mesma competência e comparar.
 
@@ -48,7 +48,7 @@ npm run importar:seco              # importador antigo (Neon), grava em ./saida
 mv saida saida-neon
 git checkout sem-neon
 npm run exportar-associados        # grava ../segredos/associados.json (somente leitura no Neon)
-npm run importar:seco -- --competencia 202606
+npm run importar:seco -- --competencia 202606 --historico-desde 202406   # mesmos trimestres que o Neon tinha
 npm run comparar -- saida-neon saida     # critério: "nenhuma diferença inesperada"
 ```
 

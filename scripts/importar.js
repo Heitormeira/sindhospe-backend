@@ -6,6 +6,7 @@
  *   npm run importar:seco   grava os documentos em ./saida (nada vai para o Firebase)
  *   npm run importar        grava no Firestore, apaga documentos órfãos e sincroniza as contas
  *     -- --competencia AAAAMM  usa essa competência em vez da mais recente de dados/
+ *     -- --historico-desde AAAAMM  série histórica só a partir dessa competência (padrão: tudo em dados/historico)
  *     -- --saida PASTA         (modo seco) grava em outra pasta em vez de ./saida
  *     -- --forcar              aceita importação com bem menos associados que o Firestore atual
  *
@@ -44,11 +45,13 @@ async function main() {
   const seco = process.argv.includes("--dry-run");
   const competencia = argumento("--competencia");
   if (competencia !== undefined && !/^\d{6}$/.test(competencia)) throw new Error("Use: --competencia AAAAMM");
+  const desde = argumento("--historico-desde");
+  if (desde !== undefined && !/^\d{6}$/.test(desde)) throw new Error("Use: --historico-desde AAAAMM");
   const segredos = carregarSegredos(undefined, { exigirSenha: false, exigirCredencial: !seco });
 
   const inicio = Date.now();
   console.log("Lendo arquivos do DATASUS e a lista de associados...");
-  const fontes = carregarFontes({ pastaDados: PASTA_DADOS, associadosPath: segredos.associadosPath, competencia });
+  const fontes = carregarFontes({ pastaDados: PASTA_DADOS, associadosPath: segredos.associadosPath, competencia, desde });
   const docs = montarDocumentos(fontes);
   console.log("Documentos por coleção:", contarPorColecao(docs));
 

@@ -58,6 +58,10 @@ test("carregarFontes usa a competência mais recente e a série até ela", () =>
 
   const antiga = carregarFontes({ pastaDados: dir, associadosPath: associados, competencia: "202603" });
   assert.deepEqual(antiga.historicos.map((h) => h.competencia), ["202603"]);
+
+  const recorte = carregarFontes({ pastaDados: dir, associadosPath: associados, desde: "202606" });
+  assert.deepEqual(recorte.historicos.map((h) => h.competencia), ["202606"], "--historico-desde corta a série");
+  assert.throws(() => carregarFontes({ pastaDados: dir, associadosPath: associados, competencia: "202603", desde: "202606" }), /historico-desde/);
 });
 
 test("carregarFontes explica o que falta", () => {

@@ -48,15 +48,21 @@ function lerAssociados(arquivo) {
   return { porCnes, lidos: linhas.length, semCnes };
 }
 
-/** Lê todos os arquivos de uma competência (padrão: a mais recente com agregados do DATASUS). */
-function carregarFontes({ pastaDados, associadosPath, competencia }) {
+/**
+ * Lê todos os arquivos de uma competência (padrão: a mais recente com agregados do DATASUS).
+ * `desde`: primeira competência da série histórica (padrão: todas as de dados/historico).
+ */
+function carregarFontes({ pastaDados, associadosPath, competencia, desde }) {
   const { historico, agregados } = competenciasDisponiveis(pastaDados);
   const comp = competencia || agregados.at(-1);
-  if (!comp) throw new Error("Faltam os agregados do DATASUS. Rode: npm run baixar-cnes -- AAAAMM --historico 202406");
+  if (!comp) throw new Error("Faltam os agregados do DATASUS. Rode: npm run baixar-cnes -- AAAAMM --historico 202003");
   if (!agregados.includes(comp)) throw new Error(`Falta dados/cnes-${comp}.json. Rode: npm run baixar-cnes -- ${comp}`);
   if (!historico.includes(comp)) throw new Error(`Falta dados/historico/${comp}.json. Rode: npm run baixar-cnes -- ${comp}`);
+  if (desde && desde > comp) throw new Error(`--historico-desde ${desde} é depois da competência ${comp}.`);
 
-  const historicos = historico.filter((c) => c <= comp).map((c) => lerJson(path.join(pastaDados, "historico", `${c}.json`)));
+  const historicos = historico
+    .filter((c) => c <= comp && (!desde || c >= desde))
+    .map((c) => lerJson(path.join(pastaDados, "historico", `${c}.json`)));
   const extra = lerJson(path.join(pastaDados, `cnes-${comp}.json`));
   const { municipios } = lerJson(path.join(pastaDados, "municipios-pe.json"));
   const associados = lerAssociados(associadosPath);
