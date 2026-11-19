@@ -13,7 +13,7 @@ Segredos ficam **fora** do repositório, na pasta `../segredos/` (ou na pasta in
 
 | Arquivo | Conteúdo |
 |---|---|
-| `.env` | `DATABASE_URL=...` (Neon), `SENHA_DEMO=...` (6+ caracteres, senha inicial das contas) e `SENHA_SINDICATO=...` (8+ caracteres, conta `sindicato@sindhospe.app` do Painel SINDHOSPE; opcional) |
+| `.env` | `DATABASE_URL=...` (Neon), `SENHA_SINDICATO=...` (8+ caracteres, conta `sindicato@sindhospe.app` do Painel SINDHOSPE; opcional) |
 | `firebase-admin.json` | chave da conta de serviço (Firebase → Configurações → Contas de serviço) |
 
 ```bash
@@ -47,7 +47,9 @@ Documentos do projeto com o SINDHOSPE: `docs/projeto/` (plano de trabalho, amost
 
 - O importador conecta ao Neon **somente leitura** e é idempotente: pode rodar de novo sem duplicar nada.
 - Ele aborta sem alterar nada se a importação trouxer menos de 90% dos associados atuais. Se a redução for real, use `npm run importar -- --forcar`.
-- Contas que já existem não têm a senha trocada, para não derrubar quem está logado. Para redefinir todas as senhas para `SENHA_DEMO`, use `npm run importar -- --resetar-senhas`.
+- **Senha individual:** cada conta nova recebe uma senha aleatória própria (10 caracteres, sem 0/O/1/l/I). As senhas vão para `../segredos/senhas/senhas-<data>-<motivo>.csv` (fora do repositório; abre no Excel) e **nunca** aparecem no terminal.
+- Contas que já existem não têm a senha trocada, para não derrubar quem está logado nem apagar a senha que o associado escolheu.
+- **Redefinir senhas** ("esqueci minha senha", ou a entrega inicial): `npm run senhas -- 2355906 3141020` (só esses CNES) ou `npm run senhas -- --todos`. Gera o CSV e derruba as sessões abertas dessas contas. A conta do sindicato não é afetada.
 - Associados que saem do sindicato têm a conta **desativada**, não apagada.
 - Cada importação faz cerca de 2.900 gravações, dentro da cota gratuita de 20 mil por dia.
 

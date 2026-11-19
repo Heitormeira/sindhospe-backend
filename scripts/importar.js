@@ -5,9 +5,11 @@
  *   npm run importar:seco   grava os documentos em ./saida (nada vai para o Firebase)
  *   npm run importar        grava no Firestore, apaga documentos órfãos e sincroniza as contas
  *     -- --forcar           aceita importação com bem menos associados que o Firestore atual
- *     -- --resetar-senhas   redefine a senha de TODAS as contas para SENHA_DEMO (derruba sessões)
  *
- * Segredos: ../segredos/.env (DATABASE_URL, SENHA_DEMO) e ../segredos/firebase-admin.json,
+ * Contas novas recebem senha individual, gravada em ../segredos/senhas/ (nunca no terminal).
+ * Para redefinir senhas de associados: npm run senhas (scripts/redefinir-senhas.js).
+ *
+ * Segredos: ../segredos/.env (DATABASE_URL, SENHA_SINDICATO) e ../segredos/firebase-admin.json,
  * ou a pasta indicada em SEGREDOS_DIR.
  */
 const fs = require("node:fs");
@@ -39,7 +41,7 @@ function gravarSaida(docs) {
 
 async function main() {
   const seco = process.argv.includes("--dry-run");
-  const segredos = carregarSegredos(undefined, { exigirSenha: !seco });
+  const segredos = carregarSegredos(undefined, { exigirSenha: false });
 
   const inicio = Date.now();
   console.log("Conectando ao Neon (somente leitura)...");
@@ -60,7 +62,6 @@ async function main() {
     const { publicar } = require("./publicar");
     await publicar(docs, segredos, {
       forcar: process.argv.includes("--forcar"),
-      resetarSenhas: process.argv.includes("--resetar-senhas"),
     });
   }
   console.log(`Concluído em ${Math.round((Date.now() - inicio) / 1000)}s.`);
