@@ -43,10 +43,10 @@ Opções do importador: `--competencia AAAAMM` (usar uma competência que não �
 **Conferência da troca do Neon pelos arquivos (uma vez):** gerar as duas saídas na mesma competência e comparar.
 
 ```bash
-git checkout main
+git checkout 14cf112                # última versão que ainda lê o Neon
 npm run importar:seco              # importador antigo (Neon), grava em ./saida
 mv saida saida-neon
-git checkout sem-neon
+git checkout main                  # (ou sem-neon, se o PR ainda não foi juntado)
 npm run exportar-associados        # grava ../segredos/associados.json (somente leitura no Neon)
 npm run importar:seco -- --competencia 202606 --historico-desde 202406   # mesmos trimestres que o Neon tinha
 npm run comparar -- saida-neon saida     # critério: "nenhuma diferença inesperada"
