@@ -14,25 +14,31 @@ function dbcParaDbf(buf) {
   return Buffer.concat([buf.subarray(0, tamCab), Buffer.from(explode(ab))]);
 }
 
-/** DBF (dBase III) -> { campos, registros }, com textos sem espaços nas pontas. */
-function lerDbf(buf, { filtro } = {}) {
+/**
+ * DBF (dBase III) -> { campos, registros }, com textos sem espaços nas pontas.
+ * `apenas`: lista de campos a ler (o ST tem mais de 200 colunas; ler só as usadas
+ * economiza memória e deixa de fora dados que não interessam, como CPF/CNPJ e CEP).
+ */
+function lerDbf(buf, { filtro, apenas } = {}) {
   const n = buf.readUInt32LE(4);
   const tamCab = buf.readUInt16LE(8);
   const tamReg = buf.readUInt16LE(10);
   const campos = [];
-  for (let p = 32; buf[p] !== 0x0d; p += 32) {
-    campos.push({ nome: buf.toString("latin1", p, p + 11).replace(/\0.*$/s, ""), tam: buf[p + 16] });
+  // Os arquivos do DATASUS nem sempre trazem o terminador 0x0D da lista de campos
+  // (o ST não traz): o limite é o tamanho do cabeçalho.
+  let desloc = 1; // 1º byte do registro = marca de apagado
+  for (let p = 32; p + 32 <= tamCab && buf[p] !== 0x0d; p += 32) {
+    const c = { nome: buf.toString("latin1", p, p + 11).replace(/\0.*$/s, ""), tam: buf[p + 16], desloc };
+    desloc += c.tam;
+    campos.push(c);
   }
+  const lidos = apenas ? campos.filter((c) => apenas.includes(c.nome)) : campos;
   const registros = [];
   for (let i = 0; i < n; i++) {
-    let p = tamCab + i * tamReg;
+    const p = tamCab + i * tamReg;
     if (buf[p] === 0x2a) continue; // registro apagado
-    p++;
     const r = {};
-    for (const c of campos) {
-      r[c.nome] = buf.toString("latin1", p, p + c.tam).trim();
-      p += c.tam;
-    }
+    for (const c of lidos) r[c.nome] = buf.toString("latin1", p + c.desloc, p + c.desloc + c.tam).trim();
     if (!filtro || filtro(r)) registros.push(r);
   }
   return { campos: campos.map((c) => c.nome), registros };

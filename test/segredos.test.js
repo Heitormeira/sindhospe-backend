@@ -44,9 +44,17 @@ test("exigirSenha=false aceita SENHA_DEMO curta ou ausente", () => {
   assert.equal(carregarSegredos(dir, { exigirSenha: false }).databaseUrl, URL_FALSA);
 });
 
-test("erro cita DATABASE_URL quando ausente", () => {
+test("DATABASE_URL só é exigida com exigirBanco (o importador não usa mais o Neon)", () => {
   const dir = pastaCom({ env: `SENHA_DEMO=abcdef\n` });
-  assert.throws(() => carregarSegredos(dir), /DATABASE_URL/);
+  assert.equal(carregarSegredos(dir).databaseUrl, undefined);
+  assert.throws(() => carregarSegredos(dir, { exigirBanco: true }), /DATABASE_URL/);
+});
+
+test("modo seco: funciona sem .env e sem chave do Firebase", () => {
+  const dir = pastaCom({ env: undefined, credencial: false });
+  const s = carregarSegredos(dir, { exigirSenha: false, exigirCredencial: false });
+  assert.equal(s.associadosPath, path.join(dir, "associados.json"));
+  assert.throws(() => carregarSegredos(dir, { exigirSenha: false }), /firebase-admin\.json/);
 });
 
 test("erro cita firebase-admin.json quando a chave falta", () => {

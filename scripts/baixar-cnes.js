@@ -1,14 +1,18 @@
 #!/usr/bin/env node
 /**
- * Baixa do DATASUS os arquivos do CNES de Pernambuco que não estão no Neon,
- * agrega por estabelecimento e grava dados/cnes-AAAAMM.json (só contagens).
+ * Baixa do DATASUS os arquivos do CNES de Pernambuco e grava, só com contagens:
+ *   dados/cnes-AAAAMM.json        equipamentos, profissionais, serviços e habilitações (+ dicionários)
+ *   dados/historico/AAAAMM.json   cadastro (ST) e leitos (LT): competência atual e série histórica
  *
- *   npm run baixar-cnes -- 202606
+ *   npm run baixar-cnes -- 202609                     só a competência
+ *   npm run baixar-cnes -- 202609 --historico 202406  também ST e LT de cada trimestre desde 06/2024
+ *                                                     (os que já existem em dados/historico não são baixados de novo)
  *
- * Arquivos: EQ (equipamentos), PF (profissionais), SR (serviços especializados),
- * HB (habilitações) e o pacote de dicionários TAB_CNES.zip.
- * LGPD: o arquivo PF tem nomes e CNS; aqui eles só servem para contar
- * profissionais distintos e nunca são gravados.
+ * Arquivos: ST (cadastro), LT (leitos), EQ (equipamentos), PF (profissionais),
+ * SR (serviços especializados), HB (habilitações) e o pacote de dicionários TAB_CNES.zip.
+ * LGPD: do PF só são lidos CNES, CBO e o identificador do profissional, que serve
+ * apenas para contar pessoas distintas e nunca é gravado (nomes nem são lidos).
+ * Do ST só saem os campos listados em scripts/historico.js.
  * Requer `curl` e `tar` (vêm com o Windows 10+, macOS e Linux).
  */
 const fs = require("node:fs");
@@ -16,10 +20,21 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { dbcParaDbf, lerDbf, lerCnv } = require("./datasus");
 const { grupoProfissional } = require("./categorias");
+const { compactarHistorico, CAMPOS_LIDOS_ST, CAMPOS_LIDOS_LT } = require("./historico");
 
 const FTP = "ftp://ftp.datasus.gov.br/dissemin/publicos/CNES/200508_";
 const PASTA_DADOS = path.resolve(__dirname, "../dados");
 const PASTA_BRUTOS = path.join(PASTA_DADOS, "brutos");
+const PASTA_HISTORICO = path.join(PASTA_DADOS, "historico");
+// Só os campos usados: menos memória e nenhum dado pessoal carregado à toa.
+const CAMPOS_LIDOS = {
+  EQ: ["CNES", "TIPEQUIP", "CODEQUIP", "QT_EXIST", "QT_USO", "IND_SUS"],
+  PF: ["CNES", "CBO", "CNS_PROF", "CPF_PROF"],
+  SR: ["CNES", "SERV_ESP"],
+  HB: ["CNES", "SGRUPHAB"],
+  ST: CAMPOS_LIDOS_ST,
+  LT: CAMPOS_LIDOS_LT,
+};
 const DICIONARIOS = [
   "CNV/Equip_Tp.cnv", "CNV/equipam2507.cnv", "CNV/equipam2508.cnv", "CNV/Esp_leit.CNV", "CNV/tip1leit.cnv", "DBF/SRN_ORD_N.dbf",
 ];
@@ -115,19 +130,55 @@ function lerDicionarios() {
   };
 }
 
+/** Baixa (se preciso) e lê um arquivo do CNES de PE: tipo "EQ", "ST"... */
+function lerArquivo(tipo, competencia) {
+  const nome = `${tipo}PE${competencia.slice(2)}.dbc`;
+  baixar(`Dados/${tipo}/${nome}`, path.join(PASTA_BRUTOS, nome));
+  const { registros } = lerDbf(dbcParaDbf(fs.readFileSync(path.join(PASTA_BRUTOS, nome))), { apenas: CAMPOS_LIDOS[tipo] });
+  console.log(`  ${nome}: ${registros.length} registros`);
+  return registros;
+}
+
+/** Competências trimestrais de `desde` até `ate` (de 3 em 3 meses, terminando em `ate`). */
+function trimestres(desde, ate) {
+  const meses = (c) => parseInt(c.slice(0, 4), 10) * 12 + parseInt(c.slice(4, 6), 10) - 1;
+  const lista = [];
+  for (let m = meses(ate); m >= meses(desde); m -= 3) {
+    lista.unshift(`${Math.floor(m / 12)}${String((m % 12) + 1).padStart(2, "0")}`);
+  }
+  return lista;
+}
+
+/** Grava dados/historico/AAAAMM.json com o ST e o LT da competência. */
+function gravarHistorico(competencia) {
+  const h = compactarHistorico(competencia, { st: lerArquivo("ST", competencia), lt: lerArquivo("LT", competencia) });
+  const saida = { ...h, gerado_em: new Date().toISOString(), fonte: "DATASUS/CNES — arquivos ST e LT de Pernambuco" };
+  fs.mkdirSync(PASTA_HISTORICO, { recursive: true });
+  const destino = path.join(PASTA_HISTORICO, `${competencia}.json`);
+  fs.writeFileSync(destino, JSON.stringify(saida));
+  const repetidos = h.st_repetidos.length ? `, ${h.st_repetidos.length} CNES repetido(s) no ST` : "";
+  console.log(`Gravado ${destino} (${Object.keys(h.st).length} estabelecimentos, ${Object.keys(h.lt).length} com leitos${repetidos})`);
+}
+
 function main() {
-  const competencia = process.argv[2];
+  const args = process.argv.slice(2);
+  const competencia = args[0];
   if (!/^\d{6}$/.test(competencia || "")) throw new Error("Informe a competência: npm run baixar-cnes -- AAAAMM");
-  const aamm = competencia.slice(2);
+  const i = args.indexOf("--historico");
+  const desde = i >= 0 ? args[i + 1] : null;
+  if (i >= 0 && !/^\d{6}$/.test(desde || "")) throw new Error("Use: npm run baixar-cnes -- AAAAMM --historico AAAAMM");
   fs.mkdirSync(path.join(PASTA_BRUTOS, "tab"), { recursive: true });
 
-  const brutos = {};
-  for (const tipo of ["EQ", "PF", "SR", "HB"]) {
-    const nome = `${tipo}PE${aamm}.dbc`;
-    baixar(`Dados/${tipo}/${nome}`, path.join(PASTA_BRUTOS, nome));
-    brutos[tipo.toLowerCase()] = lerDbf(dbcParaDbf(fs.readFileSync(path.join(PASTA_BRUTOS, nome)))).registros;
-    console.log(`  ${nome}: ${brutos[tipo.toLowerCase()].length} registros`);
+  // Série histórica: ST e LT de cada trimestre anterior que ainda não está em dados/historico.
+  if (desde) {
+    for (const c of trimestres(desde, competencia).slice(0, -1)) {
+      if (!fs.existsSync(path.join(PASTA_HISTORICO, `${c}.json`))) gravarHistorico(c);
+    }
   }
+  gravarHistorico(competencia);
+
+  const brutos = {};
+  for (const tipo of ["EQ", "PF", "SR", "HB"]) brutos[tipo.toLowerCase()] = lerArquivo(tipo, competencia);
 
   const zip = path.join(PASTA_BRUTOS, "TAB_CNES.zip");
   baixar("Auxiliar/TAB_CNES.zip", zip);
@@ -154,4 +205,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { agregarCnes, limparRotulo };
+module.exports = { agregarCnes, limparRotulo, trimestres };
