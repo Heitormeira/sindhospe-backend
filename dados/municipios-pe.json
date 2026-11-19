@@ -1,0 +1,745 @@
+{
+ "fonte": "IBGE — API de localidades (servicodados.ibge.gov.br), código de 6 dígitos usado pelo CNES",
+ "municipios": [
+  {
+   "codufmun": "260005",
+   "nome_municipio": "Abreu e Lima"
+  },
+  {
+   "codufmun": "260010",
+   "nome_municipio": "Afogados da Ingazeira"
+  },
+  {
+   "codufmun": "260020",
+   "nome_municipio": "Afrânio"
+  },
+  {
+   "codufmun": "260030",
+   "nome_municipio": "Agrestina"
+  },
+  {
+   "codufmun": "260040",
+   "nome_municipio": "Água Preta"
+  },
+  {
+   "codufmun": "260050",
+   "nome_municipio": "Águas Belas"
+  },
+  {
+   "codufmun": "260060",
+   "nome_municipio": "Alagoinha"
+  },
+  {
+   "codufmun": "260070",
+   "nome_municipio": "Aliança"
+  },
+  {
+   "codufmun": "260080",
+   "nome_municipio": "Altinho"
+  },
+  {
+   "codufmun": "260090",
+   "nome_municipio": "Amaraji"
+  },
+  {
+   "codufmun": "260100",
+   "nome_municipio": "Angelim"
+  },
+  {
+   "codufmun": "260105",
+   "nome_municipio": "Araçoiaba"
+  },
+  {
+   "codufmun": "260110",
+   "nome_municipio": "Araripina"
+  },
+  {
+   "codufmun": "260120",
+   "nome_municipio": "Arcoverde"
+  },
+  {
+   "codufmun": "260130",
+   "nome_municipio": "Barra de Guabiraba"
+  },
+  {
+   "codufmun": "260140",
+   "nome_municipio": "Barreiros"
+  },
+  {
+   "codufmun": "260150",
+   "nome_municipio": "Belém de Maria"
+  },
+  {
+   "codufmun": "260160",
+   "nome_municipio": "Belém do São Francisco"
+  },
+  {
+   "codufmun": "260170",
+   "nome_municipio": "Belo Jardim"
+  },
+  {
+   "codufmun": "260180",
+   "nome_municipio": "Betânia"
+  },
+  {
+   "codufmun": "260190",
+   "nome_municipio": "Bezerros"
+  },
+  {
+   "codufmun": "260200",
+   "nome_municipio": "Bodocó"
+  },
+  {
+   "codufmun": "260210",
+   "nome_municipio": "Bom Conselho"
+  },
+  {
+   "codufmun": "260220",
+   "nome_municipio": "Bom Jardim"
+  },
+  {
+   "codufmun": "260230",
+   "nome_municipio": "Bonito"
+  },
+  {
+   "codufmun": "260240",
+   "nome_municipio": "Brejão"
+  },
+  {
+   "codufmun": "260250",
+   "nome_municipio": "Brejinho"
+  },
+  {
+   "codufmun": "260260",
+   "nome_municipio": "Brejo da Madre de Deus"
+  },
+  {
+   "codufmun": "260270",
+   "nome_municipio": "Buenos Aires"
+  },
+  {
+   "codufmun": "260280",
+   "nome_municipio": "Buíque"
+  },
+  {
+   "codufmun": "260290",
+   "nome_municipio": "Cabo de Santo Agostinho"
+  },
+  {
+   "codufmun": "260300",
+   "nome_municipio": "Cabrobó"
+  },
+  {
+   "codufmun": "260310",
+   "nome_municipio": "Cachoeirinha"
+  },
+  {
+   "codufmun": "260320",
+   "nome_municipio": "Caetés"
+  },
+  {
+   "codufmun": "260330",
+   "nome_municipio": "Calçado"
+  },
+  {
+   "codufmun": "260340",
+   "nome_municipio": "Calumbi"
+  },
+  {
+   "codufmun": "260345",
+   "nome_municipio": "Camaragibe"
+  },
+  {
+   "codufmun": "260350",
+   "nome_municipio": "Camocim de São Félix"
+  },
+  {
+   "codufmun": "260360",
+   "nome_municipio": "Camutanga"
+  },
+  {
+   "codufmun": "260370",
+   "nome_municipio": "Canhotinho"
+  },
+  {
+   "codufmun": "260380",
+   "nome_municipio": "Capoeiras"
+  },
+  {
+   "codufmun": "260390",
+   "nome_municipio": "Carnaíba"
+  },
+  {
+   "codufmun": "260392",
+   "nome_municipio": "Carnaubeira da Penha"
+  },
+  {
+   "codufmun": "260400",
+   "nome_municipio": "Carpina"
+  },
+  {
+   "codufmun": "260410",
+   "nome_municipio": "Caruaru"
+  },
+  {
+   "codufmun": "260415",
+   "nome_municipio": "Casinhas"
+  },
+  {
+   "codufmun": "260420",
+   "nome_municipio": "Catende"
+  },
+  {
+   "codufmun": "260430",
+   "nome_municipio": "Cedro"
+  },
+  {
+   "codufmun": "260440",
+   "nome_municipio": "Chã de Alegria"
+  },
+  {
+   "codufmun": "260450",
+   "nome_municipio": "Chã Grande"
+  },
+  {
+   "codufmun": "260460",
+   "nome_municipio": "Condado"
+  },
+  {
+   "codufmun": "260470",
+   "nome_municipio": "Correntes"
+  },
+  {
+   "codufmun": "260480",
+   "nome_municipio": "Cortês"
+  },
+  {
+   "codufmun": "260490",
+   "nome_municipio": "Cumaru"
+  },
+  {
+   "codufmun": "260500",
+   "nome_municipio": "Cupira"
+  },
+  {
+   "codufmun": "260510",
+   "nome_municipio": "Custódia"
+  },
+  {
+   "codufmun": "260515",
+   "nome_municipio": "Dormentes"
+  },
+  {
+   "codufmun": "260520",
+   "nome_municipio": "Escada"
+  },
+  {
+   "codufmun": "260530",
+   "nome_municipio": "Exu"
+  },
+  {
+   "codufmun": "260540",
+   "nome_municipio": "Feira Nova"
+  },
+  {
+   "codufmun": "260545",
+   "nome_municipio": "Fernando de Noronha"
+  },
+  {
+   "codufmun": "260550",
+   "nome_municipio": "Ferreiros"
+  },
+  {
+   "codufmun": "260560",
+   "nome_municipio": "Flores"
+  },
+  {
+   "codufmun": "260570",
+   "nome_municipio": "Floresta"
+  },
+  {
+   "codufmun": "260580",
+   "nome_municipio": "Frei Miguelinho"
+  },
+  {
+   "codufmun": "260590",
+   "nome_municipio": "Gameleira"
+  },
+  {
+   "codufmun": "260600",
+   "nome_municipio": "Garanhuns"
+  },
+  {
+   "codufmun": "260610",
+   "nome_municipio": "Glória do Goitá"
+  },
+  {
+   "codufmun": "260620",
+   "nome_municipio": "Goiana"
+  },
+  {
+   "codufmun": "260630",
+   "nome_municipio": "Granito"
+  },
+  {
+   "codufmun": "260640",
+   "nome_municipio": "Gravatá"
+  },
+  {
+   "codufmun": "260650",
+   "nome_municipio": "Iati"
+  },
+  {
+   "codufmun": "260660",
+   "nome_municipio": "Ibimirim"
+  },
+  {
+   "codufmun": "260670",
+   "nome_municipio": "Ibirajuba"
+  },
+  {
+   "codufmun": "260680",
+   "nome_municipio": "Igarassu"
+  },
+  {
+   "codufmun": "260690",
+   "nome_municipio": "Iguaracy"
+  },
+  {
+   "codufmun": "260760",
+   "nome_municipio": "Ilha de Itamaracá"
+  },
+  {
+   "codufmun": "260700",
+   "nome_municipio": "Inajá"
+  },
+  {
+   "codufmun": "260710",
+   "nome_municipio": "Ingazeira"
+  },
+  {
+   "codufmun": "260720",
+   "nome_municipio": "Ipojuca"
+  },
+  {
+   "codufmun": "260730",
+   "nome_municipio": "Ipubi"
+  },
+  {
+   "codufmun": "260740",
+   "nome_municipio": "Itacuruba"
+  },
+  {
+   "codufmun": "260750",
+   "nome_municipio": "Itaíba"
+  },
+  {
+   "codufmun": "260765",
+   "nome_municipio": "Itambé"
+  },
+  {
+   "codufmun": "260770",
+   "nome_municipio": "Itapetim"
+  },
+  {
+   "codufmun": "260775",
+   "nome_municipio": "Itapissuma"
+  },
+  {
+   "codufmun": "260780",
+   "nome_municipio": "Itaquitinga"
+  },
+  {
+   "codufmun": "260790",
+   "nome_municipio": "Jaboatão dos Guararapes"
+  },
+  {
+   "codufmun": "260795",
+   "nome_municipio": "Jaqueira"
+  },
+  {
+   "codufmun": "260800",
+   "nome_municipio": "Jataúba"
+  },
+  {
+   "codufmun": "260805",
+   "nome_municipio": "Jatobá"
+  },
+  {
+   "codufmun": "260810",
+   "nome_municipio": "João Alfredo"
+  },
+  {
+   "codufmun": "260820",
+   "nome_municipio": "Joaquim Nabuco"
+  },
+  {
+   "codufmun": "260825",
+   "nome_municipio": "Jucati"
+  },
+  {
+   "codufmun": "260830",
+   "nome_municipio": "Jupi"
+  },
+  {
+   "codufmun": "260840",
+   "nome_municipio": "Jurema"
+  },
+  {
+   "codufmun": "260850",
+   "nome_municipio": "Lagoa de Itaenga"
+  },
+  {
+   "codufmun": "260845",
+   "nome_municipio": "Lagoa do Carro"
+  },
+  {
+   "codufmun": "260860",
+   "nome_municipio": "Lagoa do Ouro"
+  },
+  {
+   "codufmun": "260870",
+   "nome_municipio": "Lagoa dos Gatos"
+  },
+  {
+   "codufmun": "260875",
+   "nome_municipio": "Lagoa Grande"
+  },
+  {
+   "codufmun": "260880",
+   "nome_municipio": "Lajedo"
+  },
+  {
+   "codufmun": "260890",
+   "nome_municipio": "Limoeiro"
+  },
+  {
+   "codufmun": "260900",
+   "nome_municipio": "Macaparana"
+  },
+  {
+   "codufmun": "260910",
+   "nome_municipio": "Machados"
+  },
+  {
+   "codufmun": "260915",
+   "nome_municipio": "Manari"
+  },
+  {
+   "codufmun": "260920",
+   "nome_municipio": "Maraial"
+  },
+  {
+   "codufmun": "260930",
+   "nome_municipio": "Mirandiba"
+  },
+  {
+   "codufmun": "261430",
+   "nome_municipio": "Moreilândia"
+  },
+  {
+   "codufmun": "260940",
+   "nome_municipio": "Moreno"
+  },
+  {
+   "codufmun": "260950",
+   "nome_municipio": "Nazaré da Mata"
+  },
+  {
+   "codufmun": "260960",
+   "nome_municipio": "Olinda"
+  },
+  {
+   "codufmun": "260970",
+   "nome_municipio": "Orobó"
+  },
+  {
+   "codufmun": "260980",
+   "nome_municipio": "Orocó"
+  },
+  {
+   "codufmun": "260990",
+   "nome_municipio": "Ouricuri"
+  },
+  {
+   "codufmun": "261000",
+   "nome_municipio": "Palmares"
+  },
+  {
+   "codufmun": "261010",
+   "nome_municipio": "Palmeirina"
+  },
+  {
+   "codufmun": "261020",
+   "nome_municipio": "Panelas"
+  },
+  {
+   "codufmun": "261030",
+   "nome_municipio": "Paranatama"
+  },
+  {
+   "codufmun": "261040",
+   "nome_municipio": "Parnamirim"
+  },
+  {
+   "codufmun": "261050",
+   "nome_municipio": "Passira"
+  },
+  {
+   "codufmun": "261060",
+   "nome_municipio": "Paudalho"
+  },
+  {
+   "codufmun": "261070",
+   "nome_municipio": "Paulista"
+  },
+  {
+   "codufmun": "261080",
+   "nome_municipio": "Pedra"
+  },
+  {
+   "codufmun": "261090",
+   "nome_municipio": "Pesqueira"
+  },
+  {
+   "codufmun": "261100",
+   "nome_municipio": "Petrolândia"
+  },
+  {
+   "codufmun": "261110",
+   "nome_municipio": "Petrolina"
+  },
+  {
+   "codufmun": "261120",
+   "nome_municipio": "Poção"
+  },
+  {
+   "codufmun": "261130",
+   "nome_municipio": "Pombos"
+  },
+  {
+   "codufmun": "261140",
+   "nome_municipio": "Primavera"
+  },
+  {
+   "codufmun": "261150",
+   "nome_municipio": "Quipapá"
+  },
+  {
+   "codufmun": "261153",
+   "nome_municipio": "Quixaba"
+  },
+  {
+   "codufmun": "261160",
+   "nome_municipio": "Recife"
+  },
+  {
+   "codufmun": "261170",
+   "nome_municipio": "Riacho das Almas"
+  },
+  {
+   "codufmun": "261180",
+   "nome_municipio": "Ribeirão"
+  },
+  {
+   "codufmun": "261190",
+   "nome_municipio": "Rio Formoso"
+  },
+  {
+   "codufmun": "261200",
+   "nome_municipio": "Sairé"
+  },
+  {
+   "codufmun": "261210",
+   "nome_municipio": "Salgadinho"
+  },
+  {
+   "codufmun": "261220",
+   "nome_municipio": "Salgueiro"
+  },
+  {
+   "codufmun": "261230",
+   "nome_municipio": "Saloá"
+  },
+  {
+   "codufmun": "261240",
+   "nome_municipio": "Sanharó"
+  },
+  {
+   "codufmun": "261245",
+   "nome_municipio": "Santa Cruz"
+  },
+  {
+   "codufmun": "261247",
+   "nome_municipio": "Santa Cruz da Baixa Verde"
+  },
+  {
+   "codufmun": "261250",
+   "nome_municipio": "Santa Cruz do Capibaribe"
+  },
+  {
+   "codufmun": "261255",
+   "nome_municipio": "Santa Filomena"
+  },
+  {
+   "codufmun": "261260",
+   "nome_municipio": "Santa Maria da Boa Vista"
+  },
+  {
+   "codufmun": "261270",
+   "nome_municipio": "Santa Maria do Cambucá"
+  },
+  {
+   "codufmun": "261280",
+   "nome_municipio": "Santa Terezinha"
+  },
+  {
+   "codufmun": "261290",
+   "nome_municipio": "São Benedito do Sul"
+  },
+  {
+   "codufmun": "261300",
+   "nome_municipio": "São Bento do Una"
+  },
+  {
+   "codufmun": "261310",
+   "nome_municipio": "São Caitano"
+  },
+  {
+   "codufmun": "261320",
+   "nome_municipio": "São João"
+  },
+  {
+   "codufmun": "261330",
+   "nome_municipio": "São Joaquim do Monte"
+  },
+  {
+   "codufmun": "261340",
+   "nome_municipio": "São José da Coroa Grande"
+  },
+  {
+   "codufmun": "261350",
+   "nome_municipio": "São José do Belmonte"
+  },
+  {
+   "codufmun": "261360",
+   "nome_municipio": "São José do Egito"
+  },
+  {
+   "codufmun": "261370",
+   "nome_municipio": "São Lourenço da Mata"
+  },
+  {
+   "codufmun": "261380",
+   "nome_municipio": "São Vicente Férrer"
+  },
+  {
+   "codufmun": "261390",
+   "nome_municipio": "Serra Talhada"
+  },
+  {
+   "codufmun": "261400",
+   "nome_municipio": "Serrita"
+  },
+  {
+   "codufmun": "261410",
+   "nome_municipio": "Sertânia"
+  },
+  {
+   "codufmun": "261420",
+   "nome_municipio": "Sirinhaém"
+  },
+  {
+   "codufmun": "261440",
+   "nome_municipio": "Solidão"
+  },
+  {
+   "codufmun": "261450",
+   "nome_municipio": "Surubim"
+  },
+  {
+   "codufmun": "261460",
+   "nome_municipio": "Tabira"
+  },
+  {
+   "codufmun": "261470",
+   "nome_municipio": "Tacaimbó"
+  },
+  {
+   "codufmun": "261480",
+   "nome_municipio": "Tacaratu"
+  },
+  {
+   "codufmun": "261485",
+   "nome_municipio": "Tamandaré"
+  },
+  {
+   "codufmun": "261500",
+   "nome_municipio": "Taquaritinga do Norte"
+  },
+  {
+   "codufmun": "261510",
+   "nome_municipio": "Terezinha"
+  },
+  {
+   "codufmun": "261520",
+   "nome_municipio": "Terra Nova"
+  },
+  {
+   "codufmun": "261530",
+   "nome_municipio": "Timbaúba"
+  },
+  {
+   "codufmun": "261540",
+   "nome_municipio": "Toritama"
+  },
+  {
+   "codufmun": "261550",
+   "nome_municipio": "Tracunhaém"
+  },
+  {
+   "codufmun": "261560",
+   "nome_municipio": "Trindade"
+  },
+  {
+   "codufmun": "261570",
+   "nome_municipio": "Triunfo"
+  },
+  {
+   "codufmun": "261580",
+   "nome_municipio": "Tupanatinga"
+  },
+  {
+   "codufmun": "261590",
+   "nome_municipio": "Tuparetama"
+  },
+  {
+   "codufmun": "261600",
+   "nome_municipio": "Venturosa"
+  },
+  {
+   "codufmun": "261610",
+   "nome_municipio": "Verdejante"
+  },
+  {
+   "codufmun": "261618",
+   "nome_municipio": "Vertente do Lério"
+  },
+  {
+   "codufmun": "261620",
+   "nome_municipio": "Vertentes"
+  },
+  {
+   "codufmun": "261630",
+   "nome_municipio": "Vicência"
+  },
+  {
+   "codufmun": "261640",
+   "nome_municipio": "Vitória de Santo Antão"
+  },
+  {
+   "codufmun": "261650",
+   "nome_municipio": "Xexéu"
+  }
+ ]
+}
