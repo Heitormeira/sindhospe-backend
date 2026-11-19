@@ -64,8 +64,10 @@ test("hospital: leitos da mesma competência, totais e participação (sem médi
   assert.equal(a.leitos.nao_sus, 247);
   // a última competência da evolução bate com o total do cartão
   assert.equal(a.evolucao.at(-1).total, a.leitos.total);
+  // contexto só com o mesmo tipo de unidade (05): H3 é hospital especializado (07) e fica de fora
+  assert.equal(a.leitos.contexto.tipo, "Hospital geral");
   assert.deepEqual(a.leitos.contexto.municipio, { nome: "Recife", total: 400, percentual: 62.5 });
-  assert.deepEqual(a.leitos.contexto.estado, { total: 500, percentual: 50 });
+  assert.deepEqual(a.leitos.contexto.estado, { total: 400, percentual: 62.5 });
   assert.equal(a.leitos.por_tipo[0].label, "Complementar"); // ordenado por quantidade
   assert.equal(a.leitos.por_especialidade[0].label, "Clinica geral");
   assert.ok(!/"media(_\w+)?"/.test(JSON.stringify(a)));
@@ -149,4 +151,28 @@ test("especialidades com o mesmo nome em tipos diferentes ganham o tipo no rótu
   b.extra.rotulos.leitos_especialidade = { 75: "Cardiologia", 33: "Cardiologia" };
   const labels = montarAtual(b, "H1").leitos.por_especialidade.map((e) => e.label);
   assert.deepEqual(labels.sort(), ["Cardiologia (clínico)", "Cardiologia (complementar)"]);
+});
+
+test("atendimento: quem o estabelecimento atende, por tipo, como declarado no CNES", () => {
+  const base = baseFalsa();
+  base.cadastros.get("H1").atendimento = "33320"; // internação, ambulatório e SADT: SUS + particular; urgência: particular
+  base.cadastros.get("H1").turno = "02";
+  base.cadastros.get("C1").atendimento = "01700"; // SADT: SUS, particular e planos
+  const h = montarAtual(base, "H1").atendimento;
+  assert.equal(h.sus, true);
+  assert.equal(h.planos, false);
+  assert.deepEqual(h.tipos.map((t) => t.codigo), ["internacao", "ambulatorio", "sadt", "urgencia"]);
+  assert.deepEqual(h.tipos[3], { codigo: "urgencia", label: "Urgência", sus: false, particular: true, planos: false });
+  assert.match(h.turno, /24 horas/);
+  const c = montarAtual(base, "C1").atendimento;
+  assert.equal(c.planos, true);
+  assert.deepEqual(c.tipos.map((t) => t.codigo), ["ambulatorio", "sadt"]);
+  assert.equal(montarAtual(base, "H2").atendimento, null, "sem o dado (arquivo antigo): null");
+});
+
+test("setores: tipos não assistenciais (ex.: 84, central de abastecimento) ficam fora do estado", () => {
+  const base = baseFalsa();
+  base.cadastros.set("X1", cad("261160", "84"));
+  const outros = montarSetores(base).categorias.find((c) => c.codigo === "outros");
+  assert.equal(outros, undefined);
 });

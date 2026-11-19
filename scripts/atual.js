@@ -7,6 +7,26 @@
  * Funções puras: recebem a base montada por fontes.js (arquivos do DATASUS).
  */
 const { CATEGORIAS, categoriaDoTipo, GRUPOS_PROFISSIONAIS, mediana, percentil, perfilDeServico } = require("./categorias");
+const { rotuloTipo } = require("./tipos");
+
+// Tipos de unidade sem atendimento ao paciente (gestão, regulação, logística, cessão de mão de obra):
+// ficam fora dos totais do estado por setor.
+const TIPOS_NAO_ASSISTENCIAIS = ["60", "68", "76", "81", "82", "84"];
+
+// Atendimento prestado declarado no CNES (resumo gerado em scripts/historico.js).
+const TIPOS_ATENDIMENTO = [
+  ["internacao", "Internação"], ["ambulatorio", "Ambulatório"], ["sadt", "Exames e terapias (SADT)"],
+  ["urgencia", "Urgência"], ["outros", "Outros atendimentos"],
+];
+const TURNOS = {
+  "01": "Turnos intermitentes",
+  "02": "Contínuo, 24 horas (inclusive fins de semana e feriados)",
+  "03": "Manhã, tarde e noite",
+  "04": "Somente pela manhã",
+  "05": "Somente à tarde",
+  "06": "Manhã e tarde",
+  "07": "Somente à noite",
+};
 
 const GRUPOS_EQUIPAMENTO = {
   "01": "Diagnóstico por imagem",
@@ -60,17 +80,21 @@ function indices(base) {
   if (base._indices) return base._indices;
   const leitosMunicipio = {};
   let leitosEstado = 0;
+  const leitosTipoMunicipio = {}; // "tp|codufmun" -> leitos do mesmo tipo de unidade no município
+  const leitosTipoEstado = {}; // tp -> leitos do mesmo tipo de unidade no estado
   const porGrupo = {}; // chave do grupo de comparação -> { eq: [], pf: [] }
   for (const [cnes, c] of base.cadastros) {
     const total = base.leitos.get(cnes)?.total || 0;
     leitosMunicipio[c.codufmun] = (leitosMunicipio[c.codufmun] || 0) + total;
     leitosEstado += total;
+    leitosTipoMunicipio[`${c.tp_unid}|${c.codufmun}`] = (leitosTipoMunicipio[`${c.tp_unid}|${c.codufmun}`] || 0) + total;
+    leitosTipoEstado[c.tp_unid] = (leitosTipoEstado[c.tp_unid] || 0) + total;
     const x = base.extra.estabelecimentos[cnes] || vazio;
     const t = (porGrupo[grupoComparacao(c, x).chave] ??= { eq: [], pf: [] });
     t.eq.push(somaEq(x.eq));
     t.pf.push(x.pf.t);
   }
-  base._indices = { leitosMunicipio, leitosEstado, porGrupo };
+  base._indices = { leitosMunicipio, leitosEstado, leitosTipoMunicipio, leitosTipoEstado, porGrupo };
   return base._indices;
 }
 
@@ -84,10 +108,12 @@ function desambiguar(itens, rotulosTipo) {
 function blocoLeitos(base, cnes, cad) {
   const l = base.leitos.get(cnes);
   if (!l) return null;
-  const { leitosMunicipio, leitosEstado } = indices(base);
+  const { leitosTipoMunicipio, leitosTipoEstado } = indices(base);
   const r = base.extra.rotulos;
   const comp = complementares(l);
-  const totalMunicipio = leitosMunicipio[cad.codufmun] || 0;
+  // Contexto: só estabelecimentos do MESMO tipo de unidade (reunião de 28/10, item A2).
+  const totalMunicipio = leitosTipoMunicipio[`${cad.tp_unid}|${cad.codufmun}`] || 0;
+  const totalEstado = leitosTipoEstado[cad.tp_unid] || 0;
   return {
     total: l.total,
     gerais: l.total - comp,
@@ -105,8 +131,9 @@ function blocoLeitos(base, cnes, cad) {
       r.leitos_tipo
     ),
     contexto: {
+      tipo: rotuloTipo(cad.tp_unid),
       municipio: { nome: base.municipios[cad.codufmun] || cad.codufmun, total: totalMunicipio, percentual: pct(l.total, totalMunicipio) },
-      estado: { total: leitosEstado, percentual: pct(l.total, leitosEstado) },
+      estado: { total: totalEstado, percentual: pct(l.total, totalEstado) },
     },
   };
 }
@@ -162,6 +189,22 @@ function blocoCadastro(base, cad) {
   };
 }
 
+/** Quem o estabelecimento atende (SUS, particular, planos), por tipo de atendimento, como declarado no CNES. */
+function blocoAtendimento(cad) {
+  if (!cad || !/^[0-7]{5}$/.test(cad.atendimento || "")) return null;
+  const tipos = TIPOS_ATENDIMENTO.map(([codigo, label], i) => {
+    const d = Number(cad.atendimento[i]);
+    return { codigo, label, sus: Boolean(d & 1), particular: Boolean(d & 2), planos: Boolean(d & 4) };
+  }).filter((t) => t.sus || t.particular || t.planos);
+  return {
+    sus: tipos.some((t) => t.sus),
+    particular: tipos.some((t) => t.particular),
+    planos: tipos.some((t) => t.planos),
+    tipos,
+    turno: TURNOS[cad.turno] || null,
+  };
+}
+
 function montarAtual(base, cnes) {
   const cad = base.cadastros.get(cnes);
   const x = base.extra.estabelecimentos[cnes] || vazio;
@@ -185,6 +228,7 @@ function montarAtual(base, cnes) {
           centro_cirurgico: cad.centro_cirurgico,
           centro_obstetrico: cad.centro_obstetrico,
           ambulatorio: cad.ambulatorio,
+          hospitalar: cad.hospitalar,
         }
       : null,
     grupo_comparacao: grupoComparacao(cad, x)?.label || null,
@@ -193,6 +237,7 @@ function montarAtual(base, cnes) {
     servicos: x.sr.map((codigo) => ({ codigo, label: rotServ[codigo] || `Serviço ${codigo}` })),
     habilitacoes: x.hb,
     cadastro: blocoCadastro(base, cad),
+    atendimento: blocoAtendimento(cad),
     evolucao: base.evolucao.porCnes.get(cnes) || [],
   };
 }
@@ -216,7 +261,10 @@ function totaisDe(base, lista) {
 /** publico/setores: o estado e os associados divididos por categoria. */
 function montarSetores(base) {
   const porCategoria = {};
-  for (const [cnes, c] of base.cadastros) (porCategoria[categoriaDoTipo(c.tp_unid)] ??= { estado: [], associados: [] }).estado.push(cnes);
+  for (const [cnes, c] of base.cadastros) {
+    if (TIPOS_NAO_ASSISTENCIAIS.includes(c.tp_unid)) continue;
+    (porCategoria[categoriaDoTipo(c.tp_unid)] ??= { estado: [], associados: [] }).estado.push(cnes);
+  }
   const associadosCnes = new Set(base.associados.map((a) => a.cnes));
   for (const cnes of associadosCnes) {
     const c = base.cadastros.get(cnes);
@@ -306,4 +354,4 @@ function montarPainelSindicato(base) {
   };
 }
 
-module.exports = { montarAtual, montarSetores, montarPainelSindicato, situacaoCadastro, GRUPOS_EQUIPAMENTO };
+module.exports = { montarAtual, montarSetores, montarPainelSindicato, situacaoCadastro, GRUPOS_EQUIPAMENTO, TIPOS_NAO_ASSISTENCIAIS };

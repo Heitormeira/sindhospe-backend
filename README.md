@@ -16,6 +16,7 @@ De onde vêm os dados:
 | Cadastro (ST) e leitos (LT) do CNES, por trimestre | `dados/historico/AAAAMM.json` (público, versionado) | `npm run baixar-cnes -- AAAAMM --historico 202003` |
 | Equipamentos, profissionais, serviços e habilitações | `dados/cnes-AAAAMM.json` (público, versionado) | o mesmo comando |
 | Nomes dos municípios | `dados/municipios-pe.json` (IBGE) | não muda |
+| Nomes das naturezas jurídicas | `dados/natureza-juridica.json` (dicionário NATJUR do DATASUS) | não muda |
 | Lista de associados do SINDHOSPE | `../segredos/associados.json` (**fora** do repositório) | `npm run exportar-associados` (uma vez, do Neon) ou editar o arquivo |
 
 Segredos ficam **fora** do repositório, na pasta `../segredos/` (ou na pasta indicada em `SEGREDOS_DIR`):
@@ -62,8 +63,11 @@ npm run comparar -- saida-neon saida     # critério: "nenhuma diferença inespe
 | `mercado/*` | Série por tipo de unidade (estado e município), mesma conta da API antiga | qualquer conta |
 | `publico/tipos`, `publico/municipios`, `publico/meta` | Listas dos filtros e competência dos dados | qualquer conta |
 
+Também vai no bloco `atual`: **quem o estabelecimento atende** (SUS, particular, planos e seguros, por tipo de atendimento: campos APxxCVyy do ST, como declarados no CNES) e o turno de atendimento.
+
 Regras de negócio (reunião com o SINDHOSPE de 28/10/2026, design em `docs/superpowers/specs/2026-10-31-melhorias-reuniao-design.md`):
-- leitos sempre da mesma competência e da mesma fonte em todos os blocos; totais e participação em vez de médias;
+- leitos sempre da mesma competência e da mesma fonte em todos os blocos; totais e participação em vez de médias, comparando só com o mesmo tipo de unidade;
+- totais do estado por setor sem os tipos não assistenciais (centrais de gestão, regulação e abastecimento; cooperativas de cessão de trabalhadores);
 - leitos só para hospital (ou quem tem leito cadastrado);
 - comparação por mediana entre estabelecimentos do mesmo grupo (hospitais pelo tipo de unidade; demais pela categoria + serviço principal: diálise, imagem, patologia, laboratório...), só com quem tem o item cadastrado;
 - LGPD: do arquivo de profissionais só saem contagens por ocupação.

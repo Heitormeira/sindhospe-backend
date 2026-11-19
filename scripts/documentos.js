@@ -31,7 +31,7 @@ function montarDocumentos(fontes, { log = console.log } = {}) {
   for (const [cnes, identidade] of porCnes) {
     const cad = base.cadastros.get(cnes);
     if (!cad) foraDoCnes++;
-    docs.set(`associados/${cnes}`, json({ ...montarFicha(identidade, cad, base.municipios, cnes), atual: montarAtual(base, cnes) }));
+    docs.set(`associados/${cnes}`, json({ ...montarFicha(identidade, cad, base.municipios, cnes, fontes.naturezas), atual: montarAtual(base, cnes) }));
     docs.set(`busca/${cnes}`, { nome_fantasia: identidade.nome_fantasia, prefixos: gerarPrefixos(identidade.nome_fantasia) });
   }
 
