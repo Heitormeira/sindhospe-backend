@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { comparar, primeiraDiferenca } = require("../scripts/comparar-saidas");
+const { comparar, primeiraDiferenca, remover } = require("../scripts/comparar-saidas");
 
 function saida(docs) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "saida-"));
@@ -42,4 +42,23 @@ test("comparar separa diferenças esperadas das inesperadas", () => {
   assert.equal(r.inesperadas.length, 1);
   assert.match(r.inesperadas[0].motivo, /identidade\.cnpj/);
   assert.ok(!r.inesperadas[0].motivo.includes("SEGREDO"), "não imprime valores da identidade");
+});
+
+test("remover tira caminhos simples e dentro de listas", () => {
+  const o = { atual: { leitos: { contexto: 1, total: 2 } }, categorias: [{ estado: 1, associados: 2 }, { estado: 3 }] };
+  remover(o, "atual.leitos.contexto");
+  remover(o, "categorias[].estado");
+  assert.deepEqual(o, { atual: { leitos: { total: 2 } }, categorias: [{ associados: 2 }, {}] });
+});
+
+test("comparar ignora os campos que mudam de propósito (contexto, atendimento, estado dos setores)", () => {
+  const antiga = saida({
+    "associados/H1": { identidade: {}, atual: { leitos: { total: 250, contexto: { estado: { total: 500 } } } } },
+    "publico/setores": { categorias: [{ codigo: "outros", estado: { estabelecimentos: 10 }, associados: { estabelecimentos: 1 } }] },
+  });
+  const nova = saida({
+    "associados/H1": { identidade: {}, atual: { leitos: { total: 250, contexto: { estado: { total: 400 } } }, atendimento: { sus: true } } },
+    "publico/setores": { categorias: [{ codigo: "outros", estado: { estabelecimentos: 8 }, associados: { estabelecimentos: 1 } }] },
+  });
+  assert.equal(comparar(antiga, nova).inesperadas.length, 0);
 });

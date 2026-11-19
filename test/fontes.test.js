@@ -34,6 +34,7 @@ function pastaFalsa() {
     path.join(dir, "municipios-pe.json"),
     JSON.stringify({ municipios: [{ codufmun: "260790", nome_municipio: "Jaboatão dos Guararapes" }, { codufmun: "261160", nome_municipio: "Recife" }] })
   );
+  fs.writeFileSync(path.join(dir, "natureza-juridica.json"), JSON.stringify({ naturezas: { 2054: "Sociedade Anonima Fechada" } }));
   const associados = path.join(dir, "associados.json");
   fs.writeFileSync(
     associados,
@@ -92,6 +93,7 @@ test("montarDocumentos: associados, busca, mercado e públicos sem banco de dado
   assert.equal(h1.identidade.cnpj, "1");
   assert.equal(h1.estrutura.tp_unid_label, "Hospital geral");
   assert.equal(h1.estrutura.municipio_nome, "Recife");
+  assert.equal(h1.estrutura.nat_jur_label, "Sociedade Anonima Fechada");
   assert.equal(h1.atual.leitos.total, 120);
   assert.equal(h1.atual.evolucao.at(-1).total, h1.atual.leitos.total, "cartão = último ponto da evolução");
   for (const campo of ["indicadores", "comparativo", "evolucao"]) assert.equal(campo in h1, false, campo);

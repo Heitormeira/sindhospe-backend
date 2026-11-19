@@ -15,7 +15,7 @@ const txt = (x) => (x == null ? "" : String(x).trim());
  * competência atual. Os blocos `indicadores`, `comparativo` (médias) e `evolucao` (leitos do ST)
  * saíram: as telas usam o bloco `atual`.
  */
-function montarFicha(identidade, cad, municipios, cnes) {
+function montarFicha(identidade, cad, municipios, cnes, naturezas = {}) {
   if (!cad) return { identidade, estrutura: null, sem_dados_cnes: true };
   return {
     identidade,
@@ -26,6 +26,7 @@ function montarFicha(identidade, cad, municipios, cnes) {
       tp_unid: cad.tp_unid,
       tp_unid_label: rotuloTipo(cad.tp_unid),
       nat_jur: cad.nat_jur,
+      nat_jur_label: naturezas[cad.nat_jur] || null,
     },
   };
 }

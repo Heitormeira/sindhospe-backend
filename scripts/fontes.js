@@ -3,6 +3,7 @@
  *   dados/cnes-AAAAMM.json        equipamentos, profissionais, serviços, habilitações e dicionários (npm run baixar-cnes)
  *   dados/historico/AAAAMM.json   cadastro (ST) e leitos (LT) de cada competência (npm run baixar-cnes -- ... --historico)
  *   dados/municipios-pe.json      nomes oficiais dos municípios (IBGE)
+ *   dados/natureza-juridica.json  nomes das naturezas jurídicas (dicionário NATJUR do DATASUS)
  *   segredos/associados.json      lista de associados do SINDHOSPE (fora do repositório; npm run exportar-associados)
  *
  * carregarFontes() lê os arquivos; montarBase() devolve a mesma estrutura que
@@ -65,8 +66,10 @@ function carregarFontes({ pastaDados, associadosPath, competencia, desde }) {
     .map((c) => lerJson(path.join(pastaDados, "historico", `${c}.json`)));
   const extra = lerJson(path.join(pastaDados, `cnes-${comp}.json`));
   const { municipios } = lerJson(path.join(pastaDados, "municipios-pe.json"));
+  const arquivoNaturezas = path.join(pastaDados, "natureza-juridica.json");
+  const naturezas = fs.existsSync(arquivoNaturezas) ? lerJson(arquivoNaturezas).naturezas : {};
   const associados = lerAssociados(associadosPath);
-  return { competencia: comp, historicos, atual: historicos.at(-1), extra, municipios, associados };
+  return { competencia: comp, historicos, atual: historicos.at(-1), extra, municipios, naturezas, associados };
 }
 
 /** Cadastro (ST) da competência atual por CNES, no formato que atual.js usa. */
@@ -87,6 +90,9 @@ function cadastros(h) {
       dt_exped: txt(r.DT_EXPED),
       orgexped: txt(r.ORGEXPED),
       nat_jur: txt(r.NAT_JUR),
+      hospitalar: r.ATENDHOS === "1",
+      turno: txt(r.TURNO_AT),
+      atendimento: txt(r.ATENDIMENTO),
     });
   }
   return mapa;

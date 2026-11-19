@@ -9,7 +9,10 @@
  *     `estrutura` passa a vir do cadastro da competência atual (antes: tabela de 06/2024);
  *   - publico/visao-geral e publico/representatividade deixam de existir (nenhuma tela usa);
  *   - publico/tipos passa a contar a competência atual (antes: 06/2024);
- *   - publico/meta: muda a hora da importação.
+ *   - publico/meta: muda a hora da importação;
+ *   - bloco atual: o contexto de leitos passa a ser do mesmo tipo de unidade, e entram
+ *     `atendimento` (quem o estabelecimento atende) e `estrutura.hospitalar`;
+ *   - publico/setores e sindicato/painel: os totais do estado deixam de contar tipos não assistenciais.
  * Valores da identidade dos associados (CNPJ etc.) não são impressos, só o nome do campo.
  */
 const fs = require("node:fs");
@@ -18,6 +21,28 @@ const path = require("node:path");
 const CAMPOS_REMOVIDOS_ASSOCIADO = ["indicadores", "comparativo", "evolucao"];
 const DOCS_REMOVIDOS = ["publico/visao-geral", "publico/representatividade"];
 const DOCS_QUE_MUDAM = ["publico/tipos", "publico/meta"];
+// Campos que mudam de propósito: saem das duas saídas antes de comparar (o resto tem de bater).
+const CAMPOS_QUE_MUDAM = {
+  associados: ["atual.leitos.contexto", "atual.atendimento", "atual.estrutura.hospitalar"],
+  "publico/setores": ["categorias[].estado"],
+  "sindicato/painel": ["setores[].estado"],
+};
+
+/** Remove um caminho como "a.b" ou "lista[].campo" de um objeto (no lugar). */
+function remover(obj, caminho) {
+  if (obj == null) return;
+  const [cabeca, ...resto] = caminho.split(".");
+  if (cabeca.endsWith("[]")) {
+    if (resto.length) for (const item of obj[cabeca.slice(0, -2)] || []) remover(item, resto.join("."));
+    return;
+  }
+  if (!resto.length) delete obj[cabeca];
+  else remover(obj[cabeca], resto.join("."));
+}
+
+function camposQueMudam(chave) {
+  return CAMPOS_QUE_MUDAM[chave] || CAMPOS_QUE_MUDAM[chave.split("/")[0]] || [];
+}
 
 function listarDocs(pasta) {
   const docs = [];
@@ -75,6 +100,10 @@ function comparar(pastaA, pastaB) {
   for (const chave of [...a].filter((k) => b.has(k))) {
     const x = ler(pastaA, chave);
     const y = ler(pastaB, chave);
+    for (const c of camposQueMudam(chave)) {
+      remover(x, c);
+      remover(y, c);
+    }
     if (DOCS_QUE_MUDAM.includes(chave)) {
       if (primeiraDiferenca(x, y)) esperadas.mudam.push(chave);
       else conta(chave);
@@ -108,6 +137,7 @@ function main() {
   console.log(`  documentos que deixam de existir: ${esperadas.removidos.join(", ") || "nenhum"}`);
   console.log(`  associados com \`estrutura\` atualizada (06/2024 -> competência atual): ${esperadas.estrutura}`);
   console.log(`  documentos que mudam de propósito: ${esperadas.mudam.join(", ") || "nenhum"}`);
+  console.log(`  campos ignorados por mudarem de propósito: ${Object.values(CAMPOS_QUE_MUDAM).flat().join(", ")}`);
   if (!inesperadas.length) {
     console.log("\nOK: nenhuma diferença inesperada.");
     return;
@@ -132,4 +162,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { comparar, primeiraDiferenca };
+module.exports = { comparar, primeiraDiferenca, remover };
