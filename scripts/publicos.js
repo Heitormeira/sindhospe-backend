@@ -93,4 +93,46 @@ function montarTipos(h) {
     .map(([codigo, total]) => ({ codigo, label: rotuloTipo(codigo), total }));
 }
 
-module.exports = { montarFicha, montarMercado, montarTipos };
+const soDigitos = (x) => String(x || "").replace(/\D/g, "");
+const formatarCnpj = (c) => c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+const formatarCep = (c) => (/^\d{8}$/.test(c || "") ? `${c.slice(0, 5)}-${c.slice(5)}` : c || null);
+const titulo = (t) => (t && t === t.toUpperCase() ? t.toLowerCase().replace(/(^|\s)\S/g, (s) => s.toUpperCase()) : t);
+
+/**
+ * Bloco `receita` da ficha: dados abertos do CNPJ (Receita Federal) do estabelecimento.
+ * Procura pelo CNPJ que o CNES informa para o CNES do associado e, se não houver, pelo CNPJ da
+ * lista do SINDHOSPE. Devolve null se o arquivo da Receita não existir ou o CNPJ não estiver nele.
+ */
+function montarReceita(receita, cnes, identidade) {
+  if (!receita) return null;
+  const candidatos = [receita.cnes?.[cnes], soDigitos(identidade?.cnpj)].filter((c) => /^\d{14}$/.test(c || ""));
+  const cnpj = candidatos.find((c) => receita.cnpj[c]);
+  if (!cnpj) return null;
+  const r = receita.cnpj[cnpj];
+  const rot = receita.rotulos;
+  const e = r.endereco;
+  return {
+    referencia: receita.referencia,
+    cnpj: formatarCnpj(cnpj),
+    matriz: r.matriz,
+    situacao: rot.situacao[r.situacao] || r.situacao,
+    ativa: r.situacao === "02",
+    data_situacao: r.data_situacao,
+    inicio_atividade: r.inicio_atividade,
+    porte: rot.porte[r.porte] || null,
+    atividade_principal: r.cnae ? { codigo: r.cnae, label: rot.cnae[r.cnae] || r.cnae } : null,
+    atividades_secundarias: r.cnaes_secundarios.map((c) => ({ codigo: c, label: rot.cnae[c] || c })),
+    endereco: e
+      ? {
+          logradouro: [titulo(e.logradouro), e.numero && e.numero !== "SN" ? e.numero : "s/n"].filter(Boolean).join(", "),
+          complemento: titulo(e.complemento),
+          bairro: titulo(e.bairro),
+          cep: formatarCep(e.cep),
+          municipio: titulo(e.municipio),
+          uf: e.uf,
+        }
+      : null,
+  };
+}
+
+module.exports = { montarFicha, montarMercado, montarTipos, montarReceita };

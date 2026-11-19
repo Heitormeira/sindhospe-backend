@@ -17,6 +17,7 @@ De onde vêm os dados:
 | Equipamentos, profissionais, serviços e habilitações | `dados/cnes-AAAAMM.json` (público, versionado) | o mesmo comando |
 | Nomes dos municípios | `dados/municipios-pe.json` (IBGE) | não muda |
 | Nomes das naturezas jurídicas | `dados/natureza-juridica.json` (dicionário NATJUR do DATASUS) | não muda |
+| Dados abertos do CNPJ (Receita Federal): endereço, situação cadastral, abertura, porte e atividades (CNAE) | `dados/receita/AAAA-MM.json` (público, versionado; sem sócios, telefone ou e-mail) | `npm run baixar-cnpj -- AAAA-MM` (baixa ~6,5 GB da Receita para `dados/brutos`, fora do git; leva horas) |
 | Lista de associados do SINDHOSPE | `../segredos/associados.json` (**fora** do repositório) | `npm run exportar-associados` (uma vez, do Neon) ou editar o arquivo |
 
 Segredos ficam **fora** do repositório, na pasta `../segredos/` (ou na pasta indicada em `SEGREDOS_DIR`):
